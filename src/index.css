@@ -1,0 +1,26 @@
+/* src/index.css */
+/* stylelint-disable at-rule-no-unknown */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+                      
+/* stylelint-enable at-rule-no-unknown */
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-gradientShift {
+  animation: gradientShift 15s ease infinite;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 2s ease-in-out;
+}
