@@ -3,9 +3,14 @@ module.exports = {
   style: {
     postcss: {
       plugins: [
-        require('tailwindcss')('./tailwind.config.js'), // Explicitly specify the config file
+        require('tailwindcss')('./tailwind.config.js'),
         require('autoprefixer'),
       ],
+      loaderOptions: {
+        postcssOptions: {
+          config: './postcss.config.js', // Explicitly reference postcss.config.js
+        },
+      },
     },
   },
 };

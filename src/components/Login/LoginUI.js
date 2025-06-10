@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import logoImage from '/Users/USER/Desktop/GM TOOLS AND FILES/V2/test_manager_tool/src/components/logo.png';
+import logoImage from '/Users/USER/Desktop/test_manager_tool/src/components/logo.png';
 
 const LoginUI = ({ username, setUsername, password, setPassword, handleLogin, handleForgotPassword }) => {
   return (

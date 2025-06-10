@@ -1,4 +1,3 @@
-// src/ErrorBoundary.js
 import React from 'react';
 
 class ErrorBoundary extends React.Component {
@@ -15,18 +14,9 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-4 text-center text-red-600">
-          <h2>Something went wrong.</h2>
-          <p>{this.state.error?.message || 'An unexpected error occurred.'}</p>
-          <button
-            onClick={() => {
-              localStorage.removeItem('user'); // Clean up bad data
-              window.location.reload(); // Reload the page
-            }}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-          >
-            Reload Page
-          </button>
+        <div className="p-4 text-red-500">
+          <h1>Something went wrong.</h1>
+          <p>{this.state.error?.message}</p>
         </div>
       );
     }
