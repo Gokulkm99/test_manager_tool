@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const StatusMailFormatterUI = ({
   user,
@@ -33,6 +33,11 @@ const StatusMailFormatterUI = ({
   const [showPreview, setShowPreview] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [tempSettings, setTempSettings] = useState(settings);
+
+  // Update tempSettings when settings prop changes
+  useEffect(() => {
+    setTempSettings(settings);
+  }, [settings]);
 
   if (!hasAccess('/status-mail-formatter')) {
     return <div className="p-4 text-gray-800 text-center">You do not have access to this tab.</div>;
@@ -99,6 +104,13 @@ const StatusMailFormatterUI = ({
     setShowSettings(false);
   };
 
+  // Function to convert URLs in text to clickable links
+  const renderTextWithLinks = (text) => {
+    if (!text) return text;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, (url) => `<a href="${url}" target="_blank" style="color:#1a73e8">${url}</a>`);
+  };
+
   const renderPreviewText = () => {
     const plainText = settings.greeting + '\n';
     const grouped = {};
@@ -127,8 +139,8 @@ const StatusMailFormatterUI = ({
           const taskTypeDisplay = task.task_type !== 'Normal' ? ` (${task.task_type})` : '';
           const statusDisplay = `${task.status}${taskTypeDisplay}`;
           const labelPart = task.label ? ` ${task.label}` : '';
-          const commentPart = task.comment ? ` - ${task.comment}` : '';
-          return `<span style="color:${statusColor}">    * ${statusDisplay}${labelPart} - ${task.task_description}${commentPart}</span>\n`;
+          const commentPart = task.comment ? ` - ${renderTextWithLinks(task.comment)}` : '';
+          return `<span style="color:${statusColor}">    * ${statusDisplay}${labelPart} - ${renderTextWithLinks(task.task_description)}${commentPart}</span>\n`;
         });
         sections.push(...taskItems);
         subIdx++;
@@ -140,13 +152,15 @@ const StatusMailFormatterUI = ({
 --
 Thanks & Regards,
 ${settings.name}
+${settings.designation}
+<img src="https://caparizon.com/logo.png" alt="Caparizon Logo" style="width:100px;height:auto;" />
 
 Caparizon Software Ltd
 D-75, 8th Floor, Infra Futura, Kakkanaad, Kochi - 682021
 Mobile: ${settings.mobile}
 Office: +91 - 9400359991
-${settings.email}
-www.caparizon.com
+<a href="mailto:${settings.email}">${settings.email}</a>
+<a href="http://www.caparizon.com">www.caparizon.com</a>
 `);
     return sections.join('');
   };
@@ -250,7 +264,7 @@ www.caparizon.com
               title="Settings"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </button>
@@ -398,12 +412,13 @@ www.caparizon.com
               <p className="text-gray-600 text-center text-sm">No tasks added yet.</p>
             ) : (
               <div className="flex flex-col gap-2">
-                {tasks.map((task) => (
+                {tasks.map((task, index) => (
                   <div
                     key={task.id}
                     className="bg-gray-50 p-2 rounded-md shadow-sm hover:bg-gray-100 transition-colors duration-200 flex items-center justify-between"
                   >
-                    <div className="flex-1 text-sm truncate">
+                    <div className="flex-1 text-sm truncate flex items-center">
+                      <span className="mr-2 font-medium text-gray-600">{index + 1}.</span>
                       <span
                         className={`font-medium ${
                           {
@@ -413,11 +428,10 @@ www.caparizon.com
                             Blocked: 'text-red-600',
                           }[task.status]
                         }`}
-                      >
-                        [{task.main_project}][{task.sub_project}] {task.status} ({task.task_type}) {task.task_description}
-                        {task.label && ` ${task.label}`}
-                        {task.comment && ` - ${task.comment}`}
-                      </span>
+                        dangerouslySetInnerHTML={{
+                          __html: `[${task.main_project}][${task.sub_project}] ${task.status} (${task.task_type}) ${renderTextWithLinks(task.task_description)}${task.label ? ` ${task.label}` : ''}${task.comment ? ` - ${renderTextWithLinks(task.comment)}` : ''}`,
+                        }}
+                      />
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -527,6 +541,16 @@ www.caparizon.com
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Designation</label>
+                    <input
+                      type="text"
+                      value={tempSettings.designation}
+                      onChange={(e) => setTempSettings({ ...tempSettings, designation: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
+                      placeholder="Enter your designation"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-600 mb-1">Mobile</label>
                     <input
                       type="text"
@@ -544,6 +568,26 @@ www.caparizon.com
                       onChange={(e) => setTempSettings({ ...tempSettings, email: e.target.value })}
                       className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
                       placeholder="Enter email address"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">To Emails (semicolon-separated)</label>
+                    <input
+                      type="text"
+                      value={tempSettings.toEmails}
+                      onChange={(e) => setTempSettings({ ...tempSettings, toEmails: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
+                      placeholder="e.g., user1@example.com;user2@example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">CC Emails (semicolon-separated)</label>
+                    <input
+                      type="text"
+                      value={tempSettings.ccEmails}
+                      onChange={(e) => setTempSettings({ ...tempSettings, ccEmails: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
+                      placeholder="e.g., user1@example.com;user2@example.com"
                     />
                   </div>
                 </div>

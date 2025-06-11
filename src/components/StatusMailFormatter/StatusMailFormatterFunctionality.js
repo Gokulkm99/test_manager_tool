@@ -20,6 +20,9 @@ const StatusMailFormatterFunctionality = () => {
     name: user?.username || 'admin',
     mobile: '1234567890',
     email: user?.email || 'admin@caparizon.com',
+    designation: 'Software Engineer', // New field
+    toEmails: '', // New field
+    ccEmails: 'SRUTH@CAP.COM;GOK@CAP.COM', // New field
   });
 
   // Load tasks from localStorage (12-hour expiry)
@@ -185,18 +188,20 @@ const StatusMailFormatterFunctionality = () => {
 --
 Thanks & Regards,
 ${settings.name}
+${settings.designation}
+<img src="https://caparizon.com/logo.png" alt="Caparizon Logo" style="width:100px;height:auto;" />
 
 Caparizon Software Ltd
 D-75, 8th Floor, Infra Futura, Kakkanaad, Kochi - 682021
 Mobile: ${settings.mobile}
 Office: +91 - 9400359991
-${settings.email}
-www.caparizon.com
+<a href="mailto:${settings.email}">${settings.email}</a>
+<a href="http://www.caparizon.com">www.caparizon.com</a>
 `);
     return sections.join('');
   };
 
-  // Generate HTML email body
+  // Generate HTML email body (used for preview and Outlook)
   const generateEmailBody = () => {
     const sections = [`<p>${settings.greeting.replace('\n', '<br>')}</p>`];
     const grouped = {};
@@ -239,6 +244,8 @@ www.caparizon.com
 
     sections.push(`
       <p><br>--<br>Thanks & Regards,<br><b>${settings.name}</b><br>
+      ${settings.designation}<br>
+      <img src="https://caparizon.com/logo.png" alt="Caparizon Logo" style="width:100px;height:auto;" /><br>
       Caparizon Software Ltd<br>
       D-75, 8th Floor, Infra Futura, Kakkanaad, Kochi - 682021<br>
       Mobile: ${settings.mobile}<br>
@@ -259,10 +266,9 @@ www.caparizon.com
   };
 
   const handleOpenOutlook = () => {
-    const plainText = generatePlainTextEmailBody();
-    const ccEmails = 'SRUTH@CAP.COM;GOK@CAP.COM';
+    const htmlBody = generateEmailBody();
     const subject = `Daily Status ${new Date().toLocaleDateString('en-GB').replace(/\//g, '/')}`;
-    const mailtoUrl = `mailto:?cc=${encodeURIComponent(ccEmails)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainText)}`;
+    const mailtoUrl = `mailto:${encodeURIComponent(settings.toEmails || '')}?cc=${encodeURIComponent(settings.ccEmails || '')}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(htmlBody)}`;
     window.location.href = mailtoUrl;
   };
 
