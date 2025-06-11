@@ -7,23 +7,41 @@ export const AuthProvider = ({ children }) => {
   const [userPrivileges, setUserPrivileges] = useState({});
 
   useEffect(() => {
-    // Check if user is already logged in (e.g., from localStorage)
+    // Check if user is already logged in and session is valid
     const storedUser = localStorage.getItem('user');
-    if (storedUser && storedUser !== 'undefined') { // Prevent parsing "undefined"
+    const loginTimestamp = localStorage.getItem('loginTimestamp');
+    const sessionDuration = 30 * 60 * 1000; // 30 minutes in milliseconds
+
+    if (storedUser && storedUser !== 'undefined' && loginTimestamp) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        if (parsedUser && typeof parsedUser === 'object') { // Ensure it's a valid object
+        const loginTime = parseInt(loginTimestamp, 10);
+        const currentTime = Date.now();
+
+        if (parsedUser && typeof parsedUser === 'object' && currentTime - loginTime < sessionDuration) {
           setUser(parsedUser);
           fetchPrivileges(parsedUser.id);
         } else {
-          console.error('Stored user data is not a valid object:', parsedUser);
-          localStorage.removeItem('user'); // Clean up invalid data
+          // Session expired or invalid user data
+          console.error('Session expired or invalid user data');
+          logout();
         }
       } catch (err) {
         console.error('Error parsing stored user data:', err);
-        localStorage.removeItem('user'); // Clean up invalid data
+        logout();
       }
     }
+
+    // Periodic check for session expiration
+    const interval = setInterval(() => {
+      const currentTime = Date.now();
+      const storedTimestamp = localStorage.getItem('loginTimestamp');
+      if (storedTimestamp && currentTime - parseInt(storedTimestamp, 10) >= sessionDuration) {
+        logout();
+      }
+    }, 60000); // Check every 60 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchPrivileges = async (userId) => {
@@ -53,16 +71,19 @@ export const AuthProvider = ({ children }) => {
       if (response.ok && data.user && typeof data.user === 'object') {
         setUser(data.user);
         localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('loginTimestamp', Date.now().toString());
         await fetchPrivileges(data.user.id);
         return true;
       } else {
         console.error('Login failed:', data.error || 'Invalid user data');
-        localStorage.removeItem('user'); // Ensure invalid data is not stored
+        localStorage.removeItem('user');
+        localStorage.removeItem('loginTimestamp');
         return false;
       }
     } catch (err) {
       console.error('Login error:', err);
-      localStorage.removeItem('user'); // Clean up on error
+      localStorage.removeItem('user');
+      localStorage.removeItem('loginTimestamp');
       return false;
     }
   };
@@ -71,6 +92,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setUserPrivileges({});
     localStorage.removeItem('user');
+    localStorage.removeItem('loginTimestamp');
   };
 
   const hasAccess = (path) => {
