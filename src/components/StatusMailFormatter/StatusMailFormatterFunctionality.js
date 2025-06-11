@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../../AuthContext'; 
+import { AuthContext } from '../../AuthContext';
 import StatusMailFormatterUI from './StatusMailFormatterUI';
 
 const StatusMailFormatterFunctionality = () => {
@@ -15,12 +15,60 @@ const StatusMailFormatterFunctionality = () => {
   const [mainProjects, setMainProjects] = useState({});
   const [labels, setLabels] = useState({});
   const [taskTypes, setTaskTypes] = useState([]);
+  const [settings, setSettings] = useState({
+    greeting: 'Hi Team,\n\nPlease find below today\'s task updates:',
+    name: user?.username || 'admin',
+    mobile: '1234567890',
+    email: user?.email || 'admin@caparizon.com',
+  });
 
-  // Fetch projects, labels, and task types from backend
+  // Load tasks from localStorage (12-hour expiry)
+  useEffect(() => {
+    const savedTasks = localStorage.getItem('tasks');
+    if (savedTasks) {
+      const parsed = JSON.parse(savedTasks);
+      const now = new Date().getTime();
+      const twelveHours = 12 * 60 * 60 * 1000;
+      if (now - parsed.timestamp < twelveHours) {
+        setTasks(parsed.tasks);
+      } else {
+        localStorage.removeItem('tasks');
+      }
+    }
+  }, []);
+
+  // Save tasks to localStorage
+  useEffect(() => {
+    if (tasks.length > 0) {
+      localStorage.setItem('tasks', JSON.stringify({
+        tasks,
+        timestamp: new Date().getTime(),
+      }));
+    }
+  }, [tasks]);
+
+  // Load user settings from backend
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch(`http://localhost:4000/api/user-settings/${user.id}`);
+        const data = await response.json();
+        if (response.ok) {
+          setSettings(data);
+        }
+      } catch (err) {
+        console.error('Error fetching settings:', err);
+      }
+    };
+    if (user) {
+      fetchSettings();
+    }
+  }, [user]);
+
+  // Fetch projects, labels, task types
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch projects
         const projectsResponse = await fetch('http://localhost:4000/api/projects');
         const projectsData = await projectsResponse.json();
         if (projectsResponse.ok) {
@@ -30,14 +78,12 @@ const StatusMailFormatterFunctionality = () => {
           setSubProject(projectsData[firstProject]?.[0] || '');
         }
 
-        // Fetch labels
         const labelsResponse = await fetch('http://localhost:4000/api/labels');
         const labelsData = await labelsResponse.json();
         if (labelsResponse.ok) {
           setLabels(labelsData);
         }
 
-        // Fetch task types
         const taskTypesResponse = await fetch('http://localhost:4000/api/task-types');
         const taskTypesData = await taskTypesResponse.json();
         if (taskTypesResponse.ok) {
@@ -51,73 +97,108 @@ const StatusMailFormatterFunctionality = () => {
     fetchData();
   }, []);
 
-  // Fetch tasks on component mount
-  useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const response = await fetch(`http://localhost:4000/api/tasks/${user.id}`);
-        const data = await response.json();
-        if (response.ok) {
-          setTasks(data);
-        } else {
-          console.error(data.error);
-        }
-      } catch (err) {
-        console.error(err);
+  // Save settings to backend
+  const handleSaveSettings = async (newSettings) => {
+    try {
+      const response = await fetch('http://localhost:4000/api/user-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, ...newSettings }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSettings(data);
       }
-    };
-    if (user) {
-      fetchTasks();
+    } catch (error) {
+      console.error('Error saving settings:', error);
     }
-  }, [user]);
+  };
 
-  // Add a task
-  const handleAddTask = async () => {
+  // Add task
+  const handleAddTask = () => {
     if (!mainProject || !subProject || !taskDescription || !taskType) {
       alert('Please fill all required fields.');
       return;
     }
     if (label && !comment) {
-      alert('Comment is required when a label is selected.');
+      alert('Comment required when label is selected.');
       return;
     }
 
     const newTask = {
+      id: Date.now(),
       user_id: user.id,
       main_project: mainProject,
       sub_project: subProject,
       task_description: taskDescription,
       status,
       task_type: taskType,
-      label: label || undefined,
-      comment: comment || undefined,
+      label: label || '',
+      comment: comment || '',
     };
 
-    try {
-      const response = await fetch('http://localhost:4000/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTask),
-      });
-      const savedTask = await response.json();
-      if (response.ok) {
-        setTasks([savedTask, ...tasks]);
-        setTaskDescription('');
-        setLabel('');
-        setComment('');
-        setTaskType(taskTypes[0] || '');
-      } else {
-        alert(savedTask.error || 'Failed to add task');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Failed to add task');
-    }
+    setTasks([newTask, ...tasks]);
+    setTaskDescription('');
+    setLabel('');
+    setComment('');
+    setTaskType(taskTypes[0] || '');
   };
 
-  // Generate email body
+  // Generate plain text email body
+  const generatePlainTextEmailBody = () => {
+    const sections = [settings.greeting + '\n'];
+    const grouped = {};
+
+    tasks.forEach((task) => {
+      const { main_project, sub_project } = task;
+      if (!grouped[main_project]) grouped[main_project] = {};
+      if (!grouped[main_project][sub_project]) grouped[main_project][sub_project] = [];
+      grouped[main_project][sub_project].push(task);
+    });
+
+    let mainIdx = 1;
+    for (const mainProj in grouped) {
+      sections.push(`${mainIdx}. ${mainProj}\n`);
+      let subIdx = 1;
+      for (const subProj in grouped[mainProj]) {
+        sections.push(`  ${mainIdx}.${subIdx} ${subProj}\n`);
+        const taskItems = grouped[mainProj][subProj].map((task) => {
+          const statusColor = {
+            Completed: '[GREEN]',
+            'In Progress': '[ORANGE]',
+            'To Be Done': '[BLUE]',
+            Blocked: '[RED]',
+          }[task.status];
+          const taskTypeDisplay = task.task_type !== 'Normal' ? ` (${task.task_type})` : '';
+          const statusDisplay = `${task.status}${taskTypeDisplay}`;
+          const labelPart = task.label ? ` ${task.label}` : '';
+          const commentPart = task.comment ? ` - ${task.comment}` : '';
+          return `    * ${statusColor}${statusDisplay}${labelPart} - ${task.task_description}${commentPart}\n`;
+        });
+        sections.push(...taskItems);
+        subIdx++;
+      }
+      mainIdx++;
+    }
+
+    sections.push(`
+--
+Thanks & Regards,
+${settings.name}
+
+Caparizon Software Ltd
+D-75, 8th Floor, Infra Futura, Kakkanaad, Kochi - 682021
+Mobile: ${settings.mobile}
+Office: +91 - 9400359991
+${settings.email}
+www.caparizon.com
+`);
+    return sections.join('');
+  };
+
+  // Generate HTML email body
   const generateEmailBody = () => {
-    const sections = ['<p>Hi Team,</p><p>Please find below today\'s task updates:</p>'];
+    const sections = [`<p>${settings.greeting.replace('\n', '<br>')}</p>`];
     const grouped = {};
 
     tasks.forEach((task) => {
@@ -140,7 +221,7 @@ const StatusMailFormatterFunctionality = () => {
             'To Be Done': '#029de6',
             Blocked: '#ff0000',
           }[task.status];
-          const labelColor = labels[task.label] || '';
+          const labelColor = labels[task.label] || '#666666';
           const taskTypeDisplay = task.task_type !== 'Normal' ? ` (${task.task_type})` : '';
           const statusDisplay = `${task.status}${taskTypeDisplay}`;
           const labelPart = task.label ? `<span style="color:${labelColor}">${task.label}</span>` : '';
@@ -157,12 +238,12 @@ const StatusMailFormatterFunctionality = () => {
     }
 
     sections.push(`
-      <p><br>--<br>Thanks & Regards,<br><b>${user.username}</b><br>
+      <p><br>--<br>Thanks & Regards,<br><b>${settings.name}</b><br>
       Caparizon Software Ltd<br>
       D-75, 8th Floor, Infra Futura, Kakkanaad, Kochi - 682021<br>
-      Mobile: 1234567890<br>
+      Mobile: ${settings.mobile}<br>
       Office: +91 - 9400359991<br>
-      <a href="mailto:${user.email}">${user.email}</a><br>
+      <a href="mailto:${settings.email}">${settings.email}</a><br>
       <a href="http://www.caparizon.com">www.caparizon.com</a>
       </p>
     `);
@@ -171,9 +252,18 @@ const StatusMailFormatterFunctionality = () => {
   };
 
   const handleCopyEmail = () => {
-    const html = generateEmailBody();
-    navigator.clipboard.writeText(html);
+    const plainText = generatePlainTextEmailBody();
+    navigator.clipboard.writeText(plainText);
     alert('Email body copied to clipboard!');
+    return generateEmailBody();
+  };
+
+  const handleOpenOutlook = () => {
+    const plainText = generatePlainTextEmailBody();
+    const ccEmails = 'SRUTH@CAP.COM;GOK@CAP.COM';
+    const subject = `Daily Status ${new Date().toLocaleDateString('en-GB').replace(/\//g, '/')}`;
+    const mailtoUrl = `mailto:?cc=${encodeURIComponent(ccEmails)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainText)}`;
+    window.location.href = mailtoUrl;
   };
 
   return (
@@ -181,6 +271,7 @@ const StatusMailFormatterFunctionality = () => {
       user={user}
       hasAccess={hasAccess}
       tasks={tasks}
+      setTasks={setTasks}
       mainProject={mainProject}
       setMainProject={setMainProject}
       subProject={subProject}
@@ -200,6 +291,10 @@ const StatusMailFormatterFunctionality = () => {
       taskTypes={taskTypes}
       handleAddTask={handleAddTask}
       handleCopyEmail={handleCopyEmail}
+      handleOpenOutlook={handleOpenOutlook}
+      generateEmailBody={generateEmailBody}
+      settings={settings}
+      handleSaveSettings={handleSaveSettings}
     />
   );
 };

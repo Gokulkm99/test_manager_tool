@@ -142,7 +142,7 @@ const HeaderUI = ({
           <motion.img
             src={logoImage}
             alt="Caparizon Logo"
-            className="w-12 h-8 cursor-pointer"
+            className="w-15 h-10 cursor-pointer"
             onClick={handleLogoClick}
             animate={{ scale: [1, 1.1, 1] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
