@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
+import 'jspdf-autotable'; // Import jspdf-autotable
 import * as pdfjsLib from 'pdfjs-dist';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -132,9 +133,14 @@ const useQATestReportFunctionality = () => {
     yOffset += 10;
     doc.text(`Browser: ${browser}`, 20, yOffset);
     yOffset += 10;
-    doc.setTextColor(status === 'Completed' ? '0, 128, 0' : '255, 0, 0');
+    // Set status color
+    if (status === 'Completed') {
+      doc.setTextColor(0, 128, 0); // Green
+    } else {
+      doc.setTextColor(255, 0, 0); // Red
+    }
     doc.text(`Status: ${status}`, 20, yOffset);
-    doc.setTextColor(0);
+    doc.setTextColor(0); // Reset to black
     yOffset += 20;
 
     // Summary
@@ -204,10 +210,15 @@ const useQATestReportFunctionality = () => {
     doc.text(conclusion || 'N/A', 20, yOffset, { maxWidth: 170 });
     yOffset += 20;
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(status === 'Completed' ? '0, 128, 0' : '255, 0, 0');
+    // Set status color
+    if (status === 'Completed') {
+      doc.setTextColor(0, 128, 0); // Green
+    } else {
+      doc.setTextColor(255, 0, 0); // Red
+    }
     doc.text(`The Testing has been completed and it is ${status === 'Completed' ? 'Passed' : 'Failed'}.`, 20, yOffset);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0);
+    doc.setTextColor(0); // Reset to black
 
     // Save PDF
     doc.save(`${projectName}_Test_Report.pdf`);
@@ -228,9 +239,9 @@ const useQATestReportFunctionality = () => {
     }
 
     // Extract fields
-    const extractField = (label, text) => {
-      const regex = new RegExp(`${label}\\s*[:]?\\s*([^\\n]+)`);
-      const match = text.match(regex);
+    const extractField = (label, textContent) => {
+      const regex = new RegExp(`${label}\\s*[:]?\\s*([^\\n]*)`);
+      const match = textContent.match(regex);
       return match ? match[1].trim() : '';
     };
 
@@ -241,7 +252,10 @@ const useQATestReportFunctionality = () => {
     setTestType(extractField('Type of Test', text));
     setChangeId(extractField('Change ID', text));
     setBrowser(extractField('Browser', text));
-    setStatus(extractField('Status', text));
+    const statusMatch = extractField('Status', text);
+    if (['Completed', 'In Progress', 'To Be Done', 'Blocked'].includes(statusMatch)) {
+      setStatus(statusMatch);
+    }
 
     // Parse dates
     const startDateMatch = text.match(/Start Date\s*[:]? (\d{2}\/\d{2}\/\d{4})/);
@@ -278,12 +292,13 @@ const useQATestReportFunctionality = () => {
       const resultLines = testResultsMatch[1].split('\n').filter((line) => line.match(/^\d+\s/));
       setTestResults(resultLines.map((line) => {
         const parts = line.trim().split(/\s+/);
-        const no = parts[0];
-        const ticketId = parts[1];
-        const type = parts[2];
-        const status = parts[3];
-        const priority = parts[4];
-        return { id: uuidv4(), ticketId, type, status, priority };
+        return {
+          id: uuidv4(),
+          ticketId: parts[1],
+          type: parts[2],
+          status: parts[3],
+          priority: parts[4],
+        };
       }));
     }
 
@@ -293,7 +308,6 @@ const useQATestReportFunctionality = () => {
       const issueLines = issuesMatch[1].split('\n').filter((line) => line.match(/^\d+\s/));
       setIssues(issueLines.map((line) => {
         const parts = line.trim().split(/\s+/);
-        const no = parts[0];
         const ticket = parts[1];
         const description = parts.slice(2).join(' ');
         return { id: uuidv4(), ticket, description };
