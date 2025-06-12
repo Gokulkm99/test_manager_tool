@@ -176,6 +176,43 @@ app.put('/api/user-privileges/:user_id', async (req, res) => {
   }
 });
 
+// Get user settings
+app.get('/api/user-settings/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'SELECT greeting, name, mobile, email, designation, to_emails, cc_emails FROM user_settings WHERE user_id = $1',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Settings not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Save or update user settings
+app.post('/api/user-settings', async (req, res) => {
+  const { user_id, greeting, name, mobile, email, designation, to_emails, cc_emails } = req.body;
+  try {
+    const result = await pool.query(
+      `INSERT INTO user_settings (user_id, greeting, name, mobile, email, designation, to_emails, cc_emails)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT (user_id)
+       DO UPDATE SET greeting = $2, name = $3, mobile = $4, email = $5, designation = $6, to_emails = $7, cc_emails = $8
+       RETURNING *`,
+      [user_id, greeting, name, mobile, email, designation, to_emails, cc_emails]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Create a task
 app.post('/api/tasks', async (req, res) => {
   const { user_id, main_project, sub_project, task_description, status, task_type, label, comment } = req.body;
@@ -223,7 +260,7 @@ app.get('/api/projects', async (req, res) => {
 
 // Add a project (for admin)
 app.post('/api/projects', async (req, res) => {
-  const { project_name } = req.body; // Changed to match SettingsCardFunctionality.js
+  const { project_name } = req.body;
   try {
     const result = await pool.query('INSERT INTO projects (main_project) VALUES ($1) RETURNING *', [project_name]);
     res.status(201).json(result.rows[0]);
@@ -235,7 +272,7 @@ app.post('/api/projects', async (req, res) => {
 
 // Add a subproject (for admin)
 app.post('/api/subprojects', async (req, res) => {
-  const { mainProject, subProject } = req.body; // Changed to match SettingsCardFunctionality.js
+  const { mainProject, subProject } = req.body;
   try {
     const projectResult = await pool.query('SELECT id FROM projects WHERE main_project = $1', [mainProject]);
     if (projectResult.rows.length === 0) {

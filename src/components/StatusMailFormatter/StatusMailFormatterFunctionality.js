@@ -12,30 +12,49 @@ const StatusMailFormatterFunctionality = () => {
   const [taskType, setTaskType] = useState('');
   const [label, setLabel] = useState('');
   const [comment, setComment] = useState('');
+  const [note, setNote] = useState('');
   const [mainProjects, setMainProjects] = useState({});
   const [labels, setLabels] = useState({});
   const [taskTypes, setTaskTypes] = useState([]);
-  const [settings, setSettings] = useState({
-    greeting: 'Hi Team,\n\nPlease find below today\'s task updates:',
-    name: user?.username || 'admin',
-    mobile: '1234567890',
-    email: user?.email || 'admin@caparizon.com',
-    designation: 'Software Engineer',
-    toEmails: '',
-    ccEmails: 'SRUTH@CAP.COM;GOK@CAP.COM',
-  });
+  const [settings, setSettings] = useState(null);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
-  // Load tasks from localStorage (12-hour expiry)
+  // Load tasks, subject, and note from localStorage
   useEffect(() => {
     const savedTasks = localStorage.getItem('tasks');
+    const savedSubject = localStorage.getItem('subject');
+    const savedNote = localStorage.getItem('note');
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const twelveHours = 12 * 60 * 60 * 1000;
+
+    // Tasks (12-hour expiry)
     if (savedTasks) {
       const parsed = JSON.parse(savedTasks);
-      const now = new Date().getTime();
-      const twelveHours = 12 * 60 * 60 * 1000;
-      if (now - parsed.timestamp < twelveHours) {
+      if (now.getTime() - parsed.timestamp < twelveHours) {
         setTasks(parsed.tasks);
       } else {
         localStorage.removeItem('tasks');
+      }
+    }
+
+    // Subject (reset at 11:59 PM daily)
+    if (savedSubject) {
+      const parsed = JSON.parse(savedSubject);
+      if (now.getTime() < parsed.expiry) {
+        setSettings((prev) => ({ ...prev, subject: parsed.subject }));
+      } else {
+        localStorage.removeItem('subject');
+      }
+    }
+
+    // Note (12-hour expiry)
+    if (savedNote) {
+      const parsed = JSON.parse(savedNote);
+      if (now.getTime() - parsed.timestamp < twelveHours) {
+        setNote(parsed.note);
+      } else {
+        localStorage.removeItem('note');
       }
     }
   }, []);
@@ -50,6 +69,28 @@ const StatusMailFormatterFunctionality = () => {
     }
   }, [tasks]);
 
+  // Save subject to localStorage with daily expiry
+  useEffect(() => {
+    if (settings?.subject) {
+      const now = new Date();
+      const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      localStorage.setItem('subject', JSON.stringify({
+        subject: settings.subject,
+        expiry: todayMidnight.getTime(),
+      }));
+    }
+  }, [settings?.subject]);
+
+  // Save note to localStorage
+  useEffect(() => {
+    if (note) {
+      localStorage.setItem('note', JSON.stringify({
+        note,
+        timestamp: new Date().getTime(),
+      }));
+    }
+  }, [note]);
+
   // Load user settings from backend
   useEffect(() => {
     const fetchSettings = async () => {
@@ -57,19 +98,35 @@ const StatusMailFormatterFunctionality = () => {
         const response = await fetch(`http://localhost:4000/api/user-settings/${user.id}`);
         const data = await response.json();
         if (response.ok) {
-          // Map backend field names to frontend state
+          const savedSubject = localStorage.getItem('subject');
+          const now = new Date();
+          const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+          let subject = `Daily Status ${new Date().toLocaleDateString('en-GB').replace(/\//g, '/')}`;
+          if (savedSubject) {
+            const parsed = JSON.parse(savedSubject);
+            if (now.getTime() < parsed.expiry) {
+              subject = parsed.subject;
+            }
+          } else if (data.subject) {
+            subject = data.subject;
+          }
           setSettings({
             greeting: data.greeting,
             name: data.name,
             mobile: data.mobile,
             email: data.email,
             designation: data.designation,
-            toEmails: data.to_emails || '',
-            ccEmails: data.cc_emails || 'SRUTH@CAP.COM;GOK@CAP.COM',
+            toEmails: data.to_emails,
+            ccEmails: data.cc_emails,
+            subject,
           });
+        } else {
+          console.error('No settings found:', data.error);
         }
       } catch (err) {
         console.error('Error fetching settings:', err);
+      } finally {
+        setSettingsLoaded(true);
       }
     };
     if (user) {
@@ -112,7 +169,6 @@ const StatusMailFormatterFunctionality = () => {
   // Save settings to backend
   const handleSaveSettings = async (newSettings) => {
     try {
-      // Map frontend field names to backend expected field names
       const payload = {
         user_id: user.id,
         greeting: newSettings.greeting,
@@ -120,8 +176,9 @@ const StatusMailFormatterFunctionality = () => {
         mobile: newSettings.mobile,
         email: newSettings.email,
         designation: newSettings.designation,
-        to_emails: newSettings.toEmails || '', // Map toEmails to to_emails
-        cc_emails: newSettings.ccEmails || '', // Map ccEmails to cc_emails
+        to_emails: newSettings.toEmails,
+        cc_emails: newSettings.ccEmails,
+        subject: newSettings.subject,
       };
       const response = await fetch('http://localhost:4000/api/user-settings', {
         method: 'POST',
@@ -130,19 +187,23 @@ const StatusMailFormatterFunctionality = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        // Update state with the response, mapping backend fields back to frontend
         setSettings({
           greeting: data.greeting,
           name: data.name,
           mobile: data.mobile,
           email: data.email,
           designation: data.designation,
-          toEmails: data.to_emails || '',
-          ccEmails: data.cc_emails || '',
+          toEmails: data.to_emails,
+          ccEmails: data.cc_emails,
+          subject: data.subject,
         });
+      } else {
+        console.error('Error saving settings:', data.error);
+        alert('Failed to save settings. Please try again.');
       }
     } catch (error) {
       console.error('Error saving settings:', error);
+      alert('Failed to save settings. Please try again.');
     }
   };
 
@@ -174,103 +235,20 @@ const StatusMailFormatterFunctionality = () => {
     setLabel('');
     setComment('');
     setTaskType(taskTypes[0] || '');
+    setStatus('Completed');
   };
 
-  // Generate plain text email body (for copying to clipboard)
-  const generatePlainTextEmailBody = () => {
-    const sections = [settings.greeting + '\n'];
-    const grouped = {};
-
-    tasks.forEach((task) => {
-      const { main_project, sub_project } = task;
-      if (!grouped[main_project]) grouped[main_project] = {};
-      if (!grouped[main_project][sub_project]) grouped[main_project][sub_project] = [];
-      grouped[main_project][sub_project].push(task);
-    });
-
-    let mainIdx = 1;
-    for (const mainProj in grouped) {
-      sections.push(`${mainIdx}. ${mainProj}\n`);
-      sections.push(`${'-'.repeat(mainProj.length + 3)}\n`); // Underline effect
-      let subIdx = 1;
-      for (const subProj in grouped[mainProj]) {
-        sections.push(`  ${mainIdx}.${subIdx} ${subProj}\n`);
-        const taskItems = grouped[mainProj][subProj].map((task) => {
-          const statusColor = {
-            Completed: '[GREEN]',
-            'In Progress': '[ORANGE]',
-            'To Be Done': '[BLUE]',
-            Blocked: '[RED]',
-          }[task.status];
-          const taskTypeDisplay = task.task_type !== 'Normal' ? ` (${task.task_type})` : '';
-          const statusDisplay = `${task.status}${taskTypeDisplay}`;
-          const labelPart = task.label ? ` ${task.label}` : '';
-          const commentPart = task.comment ? ` - ${task.comment}` : '';
-          return `    • ${statusColor}${statusDisplay}${labelPart} - ${task.task_description}${commentPart}\n`;
-        });
-        sections.push(...taskItems);
-        subIdx++;
-      }
-      mainIdx++;
-    }
-
-    sections.push(`
---
-Thanks & Regards,
-${settings.name}
-${settings.designation}
-<img src="https://caparizon.com/logo.png" alt="Caparizon Logo" style="width:100px;height:auto;" />
-
-Caparizon Software Ltd
-D-75, 8th Floor, Infra Futura, Kakkanaad, Kochi - 682021
-Mobile: ${settings.mobile}
-Office: +91 - 9400359991
-<a href="mailto:${settings.email}">${settings.email}</a>
-<a href="http://www.caparizon.com">www.caparizon.com</a>
-`);
-    return sections.join('');
+  // Reorder tasks
+  const handleReorderTasks = (newTasks) => {
+    setTasks(newTasks);
   };
 
-  // Generate plain text email body for Outlook (without signature, with bullet points, no color text)
-  const generatePlainTextEmailBodyForOutlook = () => {
-    const sections = [settings.greeting + '\n'];
-    const grouped = {};
-
-    tasks.forEach((task) => {
-      const { main_project, sub_project } = task;
-      if (!grouped[main_project]) grouped[main_project] = {};
-      if (!grouped[main_project][sub_project]) grouped[main_project][sub_project] = [];
-      grouped[main_project][sub_project].push(task);
-    });
-
-    let mainIdx = 1;
-    for (const mainProj in grouped) {
-      sections.push(`${mainIdx}. ${mainProj}\n`);
-      sections.push(`${'-'.repeat(mainProj.length + 3)}\n`); // Underline effect
-      let subIdx = 1;
-      for (const subProj in grouped[mainProj]) {
-        sections.push(`  ${mainIdx}.${subIdx} ${subProj}\n`);
-        const taskItems = grouped[mainProj][subProj].map((task) => {
-          const taskTypeDisplay = task.task_type !== 'Normal' ? ` (${task.task_type})` : '';
-          const statusDisplay = `${task.status}${taskTypeDisplay}`;
-          const labelPart = task.label ? ` ${task.label}` : '';
-          const commentPart = task.comment ? ` - ${task.comment}` : '';
-          return `    • ${statusDisplay}${labelPart} - ${task.task_description}${commentPart}\n`;
-        });
-        sections.push(...taskItems);
-        subIdx++;
-      }
-      mainIdx++;
-    }
-
-    return sections.join('');
-  };
-
-  // Generate HTML email body (for preview, matching Python format)
+  // Generate HTML email body for preview and Outlook
   const generateEmailBody = (preview = true) => {
+    if (!settings) return '';
     const sections = [
-      `<html><body style="font-family: Calibri; color: #000; background-color: #fff;">`,
-      `<p>Hi Hari,</p><p>Please find below today's task updates:</p>`
+      `<html><body style="font-family: Calibri; color: #ffffff; background-color: #1f2937;">`,
+      `<p style="color: #ffffff;">${settings.greeting.replace(/\n/g, '<br>')}</p>`,
     ];
 
     const grouped = {};
@@ -279,43 +257,41 @@ Office: +91 - 9400359991
       const { main_project, sub_project } = task;
       if (!grouped[main_project]) grouped[main_project] = {};
       if (!grouped[main_project][sub_project]) grouped[main_project][sub_project] = [];
-      let text = task.task_description;
-      if (text.includes("http")) {
-        // Convert URLs to clickable links
-        const words = text.split(" ");
-        text = words.map(word => word.startsWith("http") ? `<a href="${word}">${word}</a>` : word).join(" ");
-      }
-      const statusColor = {
-        Completed: '#5e8f59',
-        'In Progress': '#c06530',
-        'To Be Done': '#029de6',
-        Blocked: '#ff0000',
-      }[task.status];
-      const taskTypeDisplay = task.task_type !== 'Normal' ? ` (${task.task_type})` : '';
-      const statusDisplay = `${task.status}${taskTypeDisplay}`;
-      const status = `<span style="color:${statusColor}">${statusDisplay}</span>`;
-      let comment = task.comment || "";
-      if (comment.includes("http")) {
-        // Convert URLs in comments to clickable links
-        const words = comment.split(" ");
-        comment = words.map(word => word.startsWith("http") ? `<a href="${word}">${word}</a>` : word).join(" ");
-      }
-      const labelColor = labels[task.label] || '#666666';
-      const labelPart = task.label ? `<span style="color:${labelColor}">${task.label}</span>` : '';
-      const commentPart = comment ? `<span style="color:#666666">${comment}</span>` : '';
-      const labelComment = labelPart && commentPart ? `${labelPart} - ${commentPart}` : labelPart || commentPart;
-      const subpoints = labelComment ? `<ul><li>${labelComment}</li></ul>` : '';
-      grouped[main_project][sub_project].push({ status, text, subpoints });
+      grouped[main_project][sub_project].push(task);
     });
 
     let mainIdx = 1;
     for (const mainProj in grouped) {
-      sections.push(`<h4><u>${mainIdx}. ${mainProj}</u></h4>`);
+      sections.push(`<h4 style="font-weight: bold; text-decoration: underline; color: #ffffff;">${mainIdx}. ${mainProj}</h4>`);
       let subIdx = 1;
       for (const subProj in grouped[mainProj]) {
-        sections.push(`<h5>${mainIdx}.${subIdx} ${subProj}</h5><ul>`);
-        grouped[mainProj][subProj].forEach(({ status, text, subpoints }) => {
-          sections.push(`<li>${status} - ${text}${subpoints}</li>`);
+        sections.push(`<h5 style="font-weight: bold; color: #ffffff; margin-left: 20px;">${mainIdx}.${subIdx} ${subProj}</h5>`);
+        sections.push(`<ul style="margin-left: 40px; list-style-type: disc;">`);
+        grouped[mainProj][subProj].forEach((task) => {
+          const statusColor = {
+            Completed: '#5e8f59',
+            'In Progress': '#c06530',
+            'To Be Done': '#029de6',
+            Blocked: '#ff0000',
+          }[task.status];
+          let text = task.task_description;
+          if (text.includes("http")) {
+            const words = text.split(" ");
+            text = words.map(word => word.startsWith("http") ? `<a href="${word}" style="color: #60a5fa">${word}</a>` : word).join(" ");
+          }
+          const taskTypeDisplay = task.task_type !== 'Normal' ? ` (${task.task_type})` : '';
+          const statusDisplay = `<span style="color:${statusColor}">${task.status}</span>`;
+          let comment = task.comment || "";
+          if (comment.includes("http")) {
+            const words = comment.split(" ");
+            comment = words.map(word => word.startsWith("http") ? `<a href="${word}" style="color: #60a5fa">${word}</a>` : word).join(" ");
+          }
+          const labelColor = labels[task.label] || '#666666';
+          const labelPart = task.label ? `<span style="color:${labelColor}">${task.label}</span>` : '';
+          const commentPart = comment ? `<span style="color:#ffffff">${comment}</span>` : '';
+          const labelComment = labelPart && commentPart ? `${labelPart} - ${commentPart}` : labelPart || commentPart;
+          const subpoints = labelComment ? `<ul style="margin-left: 20px; list-style-type: disc;"><li style="color: #ffffff;">${labelComment}</li></ul>` : '';
+          sections.push(`<li style="color: #ffffff;">${statusDisplay}${taskTypeDisplay} - ${text}${subpoints}</li>`);
         });
         sections.push(`</ul>`);
         subIdx++;
@@ -323,37 +299,94 @@ Office: +91 - 9400359991
       mainIdx++;
     }
 
-    const logoImg = preview ? `<img src="https://caparizon.com/logo.png" alt="Caparizon Logo" style="height:40px;">` : '';
-    const designation = preview ? `${settings.designation}<br>` : '';
+    // Add Note section if note exists
+    if (note) {
+      sections.push(`<h4 style="font-weight: bold; color: #ffffff;">Note:</h4>`);
+      sections.push(`<p style="color: #ffffff; margin-left: 20px;">${note.replace(/\n/g, '<br>')}</p>`);
+    }
+
+    const logoImg = preview ? `` : `<img src="https://via.placeholder.com/100x50.png?text=Caparizon+Logo" alt="Caparizon Logo" style="width:100px;height:auto;">`;
+    const designation = preview ? `${settings.designation}` : `${settings.designation}`;
 
     sections.push(`
-      <p><br>--<br>Thanks & Regards,<br><b style="font-weight: 700;">${settings.name}</b><br>
-      ${designation}
-      ${logoImg}<br>
-      Caparizon Software Ltd<br>
-      D-75, 8th Floor, Infra Futura, Kakkanaad, Kochi - 682021<br>
-      Mobile: ${settings.mobile}<br>
-      Office: +91 - 9400359991<br>
-      <a href="mailto:${settings.email}">${settings.email}</a><br>
-      <a href="http://www.caparizon.com">www.caparizon.com</a>
-      </p></body></html>
+      <p style="color: #ffffff;">--<br>Thanks & Regards,<br><b style="font-weight: 700;">${settings.name}</b><br>${designation}<br>${logoImg}<br>Caparizon Software Ltd<br>D-75, 8th Floor, Infra Futura, Kakkanaad, Kochi - 682021<br>Mobile: ${settings.mobile}<br>Office: +91 - 9400359991<br><a href="mailto:${settings.email}" style="color: #60a5fa">${settings.email}</a><br><a href="http://www.caparizon.com" style="color: #60a5fa">www.caparizon.com</a></p>
+      </body></html>
     `);
 
     return sections.join('');
   };
 
-  const handleCopyEmail = () => {
-    const plainText = generatePlainTextEmailBody();
-    navigator.clipboard.writeText(plainText);
-    alert('Email body copied to clipboard!');
-    return generateEmailBody(true); // Preview mode for HTML
+  // Generate plain text for copy (greeting, tasks, and note only)
+  const generatePlainTextEmailBody = () => {
+    if (!settings) return '';
+    const sections = [settings.greeting + '\n'];
+    const grouped = {};
+
+    tasks.forEach((task) => {
+      const { main_project, sub_project } = task;
+      if (!grouped[main_project]) grouped[main_project] = {};
+      if (!grouped[main_project][sub_project]) grouped[main_project][sub_project] = [];
+      grouped[main_project][sub_project].push(task);
+    });
+
+    let mainIdx = 1;
+    for (const mainProj in grouped) {
+      sections.push(`\n${mainIdx}. ${mainProj}\n${'-'.repeat(mainProj.length + 3)}\n`);
+      let subIdx = 1;
+      for (const subProj in grouped[mainProj]) {
+        sections.push(`  ${mainIdx}.${subIdx} ${subProj}\n`);
+        const taskItems = grouped[mainProj][subProj].map((task) => {
+          const taskTypeDisplay = task.task_type !== 'Normal' ? ` (${task.task_type})` : '';
+          const statusDisplay = `${task.status}`;
+          const labelPart = task.label ? ` ${task.label}` : '';
+          const commentPart = task.comment ? ` - ${task.comment}` : '';
+          const labelComment = labelPart && commentPart ? `${labelPart}${commentPart}` : labelPart || commentPart;
+          const subpoints = labelComment ? `      • ${labelComment}\n` : '';
+          return `    • ${statusDisplay}${taskTypeDisplay} - ${task.task_description}\n${subpoints}`;
+        });
+        sections.push(...taskItems);
+        subIdx++;
+      }
+      mainIdx++;
+    }
+
+    if (note) {
+      sections.push(`\nNote:\n${note}\n`);
+    }
+
+    return sections.join('');
   };
 
+  const handleCopyEmail = () => {
+    if (!settings) {
+      alert('Please configure and save your settings first.');
+      return;
+    }
+    const plainText = generatePlainTextEmailBody();
+    navigator.clipboard.writeText(plainText);
+    alert('Email body (greeting, tasks, and note) copied to clipboard!');
+    return generateEmailBody(true);
+  };
+
+  // Open Outlook Web App
   const handleOpenOutlook = () => {
-    const plainTextBody = generatePlainTextEmailBodyForOutlook();
-    const subject = `Daily Status ${new Date().toLocaleDateString('en-GB').replace(/\//g, '/')}`;
-    const mailtoUrl = `mailto:${encodeURIComponent(settings.toEmails || '')}?cc=${encodeURIComponent(settings.ccEmails || '')}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
-    window.location.href = mailtoUrl;
+    if (!settings) {
+      alert('Please configure and save your settings first.');
+      return;
+    }
+    try {
+      const htmlBody = generateEmailBody(false);
+      const subject = settings.subject || `Daily Status ${new Date().toLocaleDateString('en-GB').replace(/\//g, '/')}`;
+      const encodedBody = encodeURIComponent(htmlBody);
+      const encodedTo = encodeURIComponent(settings.toEmails || '');
+      const encodedCc = encodeURIComponent(settings.ccEmails || '');
+      const encodedSubject = encodeURIComponent(subject);
+      const outlookUrl = `https://outlook.office.com/mail/deeplink/compose?to=${encodedTo}&cc=${encodedCc}&subject=${encodedSubject}&body=${encodedBody}`;
+      window.open(outlookUrl, '_blank');
+    } catch (error) {
+      console.error('Error opening Outlook Web:', error);
+      alert('Failed to open Outlook Web. Please try copying the email body and pasting it manually.');
+    }
   };
 
   return (
@@ -376,6 +409,8 @@ Office: +91 - 9400359991
       setLabel={setLabel}
       comment={comment}
       setComment={setComment}
+      note={note}
+      setNote={setNote}
       mainProjects={mainProjects}
       labels={labels}
       taskTypes={taskTypes}
@@ -385,6 +420,8 @@ Office: +91 - 9400359991
       generateEmailBody={generateEmailBody}
       settings={settings}
       handleSaveSettings={handleSaveSettings}
+      settingsLoaded={settingsLoaded}
+      handleReorderTasks={handleReorderTasks}
     />
   );
 };

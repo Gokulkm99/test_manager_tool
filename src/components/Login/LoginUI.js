@@ -14,7 +14,7 @@ const LoginUI = ({ username, setUsername, password, setPassword, handleLogin, ha
         <motion.img
           src={logoImage}
           alt="Logo"
-          className="mx-auto mb-4 w-24 h-20"
+          className="mx-auto mb-4 w-24 h-19"
           initial={{ scale: 1 }}
           animate={{ scale: [1, 1.2, 1] }}
           transition={{ duration: 6, ease: "easeInOut", repeat: Infinity }}
