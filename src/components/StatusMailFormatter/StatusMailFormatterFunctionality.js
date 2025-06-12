@@ -20,9 +20,9 @@ const StatusMailFormatterFunctionality = () => {
     name: user?.username || 'admin',
     mobile: '1234567890',
     email: user?.email || 'admin@caparizon.com',
-    designation: 'Software Engineer', // New field
-    toEmails: '', // New field
-    ccEmails: 'SRUTH@CAP.COM;GOK@CAP.COM', // New field
+    designation: 'Software Engineer',
+    toEmails: '',
+    ccEmails: 'SRUTH@CAP.COM;GOK@CAP.COM',
   });
 
   // Load tasks from localStorage (12-hour expiry)
@@ -57,7 +57,16 @@ const StatusMailFormatterFunctionality = () => {
         const response = await fetch(`http://localhost:4000/api/user-settings/${user.id}`);
         const data = await response.json();
         if (response.ok) {
-          setSettings(data);
+          // Map backend field names to frontend state
+          setSettings({
+            greeting: data.greeting,
+            name: data.name,
+            mobile: data.mobile,
+            email: data.email,
+            designation: data.designation,
+            toEmails: data.to_emails || '',
+            ccEmails: data.cc_emails || 'SRUTH@CAP.COM;GOK@CAP.COM',
+          });
         }
       } catch (err) {
         console.error('Error fetching settings:', err);
@@ -103,14 +112,34 @@ const StatusMailFormatterFunctionality = () => {
   // Save settings to backend
   const handleSaveSettings = async (newSettings) => {
     try {
+      // Map frontend field names to backend expected field names
+      const payload = {
+        user_id: user.id,
+        greeting: newSettings.greeting,
+        name: newSettings.name,
+        mobile: newSettings.mobile,
+        email: newSettings.email,
+        designation: newSettings.designation,
+        to_emails: newSettings.toEmails || '', // Map toEmails to to_emails
+        cc_emails: newSettings.ccEmails || '', // Map ccEmails to cc_emails
+      };
       const response = await fetch('http://localhost:4000/api/user-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, ...newSettings }),
+        body: JSON.stringify(payload),
       });
       const data = await response.json();
       if (response.ok) {
-        setSettings(data);
+        // Update state with the response, mapping backend fields back to frontend
+        setSettings({
+          greeting: data.greeting,
+          name: data.name,
+          mobile: data.mobile,
+          email: data.email,
+          designation: data.designation,
+          toEmails: data.to_emails || '',
+          ccEmails: data.cc_emails || '',
+        });
       }
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -147,7 +176,7 @@ const StatusMailFormatterFunctionality = () => {
     setTaskType(taskTypes[0] || '');
   };
 
-  // Generate plain text email body
+  // Generate plain text email body (for copying to clipboard)
   const generatePlainTextEmailBody = () => {
     const sections = [settings.greeting + '\n'];
     const grouped = {};
@@ -162,6 +191,7 @@ const StatusMailFormatterFunctionality = () => {
     let mainIdx = 1;
     for (const mainProj in grouped) {
       sections.push(`${mainIdx}. ${mainProj}\n`);
+      sections.push(`${'-'.repeat(mainProj.length + 3)}\n`); // Underline effect
       let subIdx = 1;
       for (const subProj in grouped[mainProj]) {
         sections.push(`  ${mainIdx}.${subIdx} ${subProj}\n`);
@@ -176,7 +206,7 @@ const StatusMailFormatterFunctionality = () => {
           const statusDisplay = `${task.status}${taskTypeDisplay}`;
           const labelPart = task.label ? ` ${task.label}` : '';
           const commentPart = task.comment ? ` - ${task.comment}` : '';
-          return `    * ${statusColor}${statusDisplay}${labelPart} - ${task.task_description}${commentPart}\n`;
+          return `    • ${statusColor}${statusDisplay}${labelPart} - ${task.task_description}${commentPart}\n`;
         });
         sections.push(...taskItems);
         subIdx++;
@@ -201,9 +231,9 @@ Office: +91 - 9400359991
     return sections.join('');
   };
 
-  // Generate HTML email body (used for preview and Outlook)
-  const generateEmailBody = () => {
-    const sections = [`<p>${settings.greeting.replace('\n', '<br>')}</p>`];
+  // Generate plain text email body for Outlook (without signature, with bullet points, no color text)
+  const generatePlainTextEmailBodyForOutlook = () => {
+    const sections = [settings.greeting + '\n'];
     const grouped = {};
 
     tasks.forEach((task) => {
@@ -215,44 +245,98 @@ Office: +91 - 9400359991
 
     let mainIdx = 1;
     for (const mainProj in grouped) {
+      sections.push(`${mainIdx}. ${mainProj}\n`);
+      sections.push(`${'-'.repeat(mainProj.length + 3)}\n`); // Underline effect
+      let subIdx = 1;
+      for (const subProj in grouped[mainProj]) {
+        sections.push(`  ${mainIdx}.${subIdx} ${subProj}\n`);
+        const taskItems = grouped[mainProj][subProj].map((task) => {
+          const taskTypeDisplay = task.task_type !== 'Normal' ? ` (${task.task_type})` : '';
+          const statusDisplay = `${task.status}${taskTypeDisplay}`;
+          const labelPart = task.label ? ` ${task.label}` : '';
+          const commentPart = task.comment ? ` - ${task.comment}` : '';
+          return `    • ${statusDisplay}${labelPart} - ${task.task_description}${commentPart}\n`;
+        });
+        sections.push(...taskItems);
+        subIdx++;
+      }
+      mainIdx++;
+    }
+
+    return sections.join('');
+  };
+
+  // Generate HTML email body (for preview, matching Python format)
+  const generateEmailBody = (preview = true) => {
+    const sections = [
+      `<html><body style="font-family: Calibri; color: #000; background-color: #fff;">`,
+      `<p>Hi Hari,</p><p>Please find below today's task updates:</p>`
+    ];
+
+    const grouped = {};
+
+    tasks.forEach((task) => {
+      const { main_project, sub_project } = task;
+      if (!grouped[main_project]) grouped[main_project] = {};
+      if (!grouped[main_project][sub_project]) grouped[main_project][sub_project] = [];
+      let text = task.task_description;
+      if (text.includes("http")) {
+        // Convert URLs to clickable links
+        const words = text.split(" ");
+        text = words.map(word => word.startsWith("http") ? `<a href="${word}">${word}</a>` : word).join(" ");
+      }
+      const statusColor = {
+        Completed: '#5e8f59',
+        'In Progress': '#c06530',
+        'To Be Done': '#029de6',
+        Blocked: '#ff0000',
+      }[task.status];
+      const taskTypeDisplay = task.task_type !== 'Normal' ? ` (${task.task_type})` : '';
+      const statusDisplay = `${task.status}${taskTypeDisplay}`;
+      const status = `<span style="color:${statusColor}">${statusDisplay}</span>`;
+      let comment = task.comment || "";
+      if (comment.includes("http")) {
+        // Convert URLs in comments to clickable links
+        const words = comment.split(" ");
+        comment = words.map(word => word.startsWith("http") ? `<a href="${word}">${word}</a>` : word).join(" ");
+      }
+      const labelColor = labels[task.label] || '#666666';
+      const labelPart = task.label ? `<span style="color:${labelColor}">${task.label}</span>` : '';
+      const commentPart = comment ? `<span style="color:#666666">${comment}</span>` : '';
+      const labelComment = labelPart && commentPart ? `${labelPart} - ${commentPart}` : labelPart || commentPart;
+      const subpoints = labelComment ? `<ul><li>${labelComment}</li></ul>` : '';
+      grouped[main_project][sub_project].push({ status, text, subpoints });
+    });
+
+    let mainIdx = 1;
+    for (const mainProj in grouped) {
       sections.push(`<h4><u>${mainIdx}. ${mainProj}</u></h4>`);
       let subIdx = 1;
       for (const subProj in grouped[mainProj]) {
         sections.push(`<h5>${mainIdx}.${subIdx} ${subProj}</h5><ul>`);
-        const taskItems = grouped[mainProj][subProj].map((task) => {
-          const statusColor = {
-            Completed: '#5e8f59',
-            'In Progress': '#c06530',
-            'To Be Done': '#029de6',
-            Blocked: '#ff0000',
-          }[task.status];
-          const labelColor = labels[task.label] || '#666666';
-          const taskTypeDisplay = task.task_type !== 'Normal' ? ` (${task.task_type})` : '';
-          const statusDisplay = `${task.status}${taskTypeDisplay}`;
-          const labelPart = task.label ? `<span style="color:${labelColor}">${task.label}</span>` : '';
-          const commentPart = task.comment ? `<span style="color:#666666">${task.comment}</span>` : '';
-          const labelComment = labelPart && commentPart ? `${labelPart} - ${commentPart}` : labelPart || commentPart;
-          const subpoints = labelComment ? `<ul><li>${labelComment}</li></ul>` : '';
-          return `<li><span style="color:${statusColor}">${statusDisplay}</span> - ${task.task_description}${subpoints}</li>`;
+        grouped[mainProj][subProj].forEach(({ status, text, subpoints }) => {
+          sections.push(`<li>${status} - ${text}${subpoints}</li>`);
         });
-        sections.push(...taskItems);
         sections.push(`</ul>`);
         subIdx++;
       }
       mainIdx++;
     }
 
+    const logoImg = preview ? `<img src="https://caparizon.com/logo.png" alt="Caparizon Logo" style="height:40px;">` : '';
+    const designation = preview ? `${settings.designation}<br>` : '';
+
     sections.push(`
-      <p><br>--<br>Thanks & Regards,<br><b>${settings.name}</b><br>
-      ${settings.designation}<br>
-      <img src="https://caparizon.com/logo.png" alt="Caparizon Logo" style="width:100px;height:auto;" /><br>
+      <p><br>--<br>Thanks & Regards,<br><b style="font-weight: 700;">${settings.name}</b><br>
+      ${designation}
+      ${logoImg}<br>
       Caparizon Software Ltd<br>
       D-75, 8th Floor, Infra Futura, Kakkanaad, Kochi - 682021<br>
       Mobile: ${settings.mobile}<br>
       Office: +91 - 9400359991<br>
       <a href="mailto:${settings.email}">${settings.email}</a><br>
       <a href="http://www.caparizon.com">www.caparizon.com</a>
-      </p>
+      </p></body></html>
     `);
 
     return sections.join('');
@@ -262,13 +346,13 @@ Office: +91 - 9400359991
     const plainText = generatePlainTextEmailBody();
     navigator.clipboard.writeText(plainText);
     alert('Email body copied to clipboard!');
-    return generateEmailBody();
+    return generateEmailBody(true); // Preview mode for HTML
   };
 
   const handleOpenOutlook = () => {
-    const htmlBody = generateEmailBody();
+    const plainTextBody = generatePlainTextEmailBodyForOutlook();
     const subject = `Daily Status ${new Date().toLocaleDateString('en-GB').replace(/\//g, '/')}`;
-    const mailtoUrl = `mailto:${encodeURIComponent(settings.toEmails || '')}?cc=${encodeURIComponent(settings.ccEmails || '')}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(htmlBody)}`;
+    const mailtoUrl = `mailto:${encodeURIComponent(settings.toEmails || '')}?cc=${encodeURIComponent(settings.ccEmails || '')}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
     window.location.href = mailtoUrl;
   };
 
