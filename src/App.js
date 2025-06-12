@@ -7,6 +7,7 @@ import MainSectionFunctionality from './components/MainSection/MainSectionFuncti
 import ButtonGroup from './components/ButtonGroup';
 import UserManagerFunctionality from './components/UserManager/UserManagerFunctionality';
 import StatusMailFormatterFunctionality from './components/StatusMailFormatter/StatusMailFormatterFunctionality';
+import QATestReport from './components/QATestReport/QATestReport';
 import LoginFunctionality from './components/Login/LoginFunctionality';
 import SettingsCardFunctionality from './components/SettingsCard/SettingsCardFunctionality';
 
@@ -29,6 +30,7 @@ const ProtectedRoute = ({ children, path }) => {
 const AppContent = () => {
   const location = useLocation();
   const showHeader = location.pathname !== '/login';
+  const { hasAccess } = React.useContext(AuthContext);
 
   return (
     <div className="relative flex flex-col min-h-screen">
@@ -72,7 +74,7 @@ const AppContent = () => {
             path="/test-report-generator"
             element={
               <ProtectedRoute path="/test-report-generator">
-                <div className="p-4 text-center text-gray-200">Test Report Generator Page</div>
+                <QATestReport hasAccess={(path) => hasAccess(path)} />
               </ProtectedRoute>
             }
           />

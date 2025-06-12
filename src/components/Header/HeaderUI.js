@@ -18,6 +18,7 @@ const HeaderUI = ({
   toggleTimeZone,
   handleAchieve,
   handleUserManager,
+  handleTestReport,
   handleHome,
   handleSettings,
   handleLogoClick,
@@ -40,7 +41,6 @@ const HeaderUI = ({
 
   const renderCalendar = () => {
     console.log('Rendering calendar:', { calendarMonth, calendarYear });
-    // Validate inputs
     if (!Number.isFinite(calendarMonth) || calendarMonth < 0 || calendarMonth > 11) {
       console.log('Invalid month:', calendarMonth);
       return <div>Invalid Month</div>;
@@ -166,6 +166,14 @@ const HeaderUI = ({
               className="relative px-2 py-1 bg-gray-800 text-gray-200 text-xs font-medium rounded-md hover:bg-gray-700 transition-colors"
             >
               USER MANAGER
+              <span className="absolute inset-0 -z-10 opacity-0 hover:opacity-100 transition-opacity duration-300 glow-effect"></span>
+            </button>
+
+            <button
+              onClick={handleTestReport}
+              className="relative px-2 py-1 bg-gray-800 text-gray-200 text-xs font-medium rounded-md hover:bg-gray-700 transition-colors"
+            >
+              TEST REPORT
               <span className="absolute inset-0 -z-10 opacity-0 hover:opacity-100 transition-opacity duration-300 glow-effect"></span>
             </button>
 

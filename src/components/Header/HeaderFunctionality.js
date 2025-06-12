@@ -151,6 +151,12 @@ const HeaderFunctionality = () => {
     navigate('/user-manager');
   };
 
+  const handleTestReport = () => {
+    console.log('Test Report clicked');
+    clearAchieveTimeout();
+    navigate('/test-report-generator');
+  };
+
   const handleHome = () => {
     console.log('Home clicked');
     clearAchieveTimeout();
@@ -223,6 +229,7 @@ const HeaderFunctionality = () => {
       toggleTimeZone={toggleTimeZone}
       handleAchieve={handleAchieve}
       handleUserManager={handleUserManager}
+      handleTestReport={handleTestReport}
       handleHome={handleHome}
       handleSettings={handleSettings}
       handleLogoClick={handleLogoClick}
