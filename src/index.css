@@ -1,156 +1,166 @@
 /* src/index.css */
-/* stylelint-disable at-rule-no-unknown */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-                      
-/* stylelint-enable at-rule-no-unknown */
 
 body {
-  overflow: hidden;
+  margin: 0;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  background: #000; /* Fallback background */
 }
 
-@keyframes fadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 2s ease-out;
-}
-
+/* Parallax star container */
 .header-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1; /* Place behind all content */
+  overflow: hidden;
+  background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%); /* Night sky gradient */
+}
+
+/* Star layers for parallax effect */
+.stars, .stars2, .stars3 {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 0;
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  will-change: transform; /* Optimize animation performance */
 }
 
-.header-container .stars {
-  position: absolute;
+.stars {
   width: 1px;
   height: 1px;
-  background: #d1d5db;
-  box-shadow:
-    2vw 5vh 2px #d1d5db,
-    10vw 8vh 2px #d1d5db,
-    15vw 15vh 1px #d1d5db,
-    22vw 22vh 1px #d1d5db,
-    28vw 12vh 2px #d1d5db,
-    32vw 32vh 1px #d1d5db,
-    38vw 18vh 2px #d1d5db,
-    42vw 35vh 1px #d1d5db,
-    48vw 25vh 2px #d1d5db,
-    53vw 42vh 1px #d1d5db,
-    58vw 15vh 2px #d1d5db,
-    63vw 38vh 1px #d1d5db,
-    68vw 28vh 2px #d1d5db,
-    73vw 45vh 1px #d1d5db,
-    78vw 32vh 2px #d1d5db,
-    83vw 48vh 1px #d1d5db,
-    88vw 20vh 2px #d1d5db,
-    93vw 52vh 1px #d1d5db,
-    98vw 35vh 2px #d1d5db,
-    5vw 60vh 1px #d1d5db,
-    12vw 65vh 2px #d1d5db,
-    18vw 72vh 1px #d1d5db,
-    25vw 78vh 2px #d1d5db,
-    30vw 85vh 1px #d1d5db,
-    35vw 68vh 2px #d1d5db,
-    40vw 82vh 1px #d1d5db,
-    45vw 92vh 2px #d1d5db,
-    50vw 75vh 1px #d1d5db,
-    55vw 88vh 2px #d1d5db,
-    60vw 95vh 1px #d1d5db;
+  box-shadow: 
+    1423px 1876px #fff, 234px 543px #fff, 876px 1234px #fff, 1678px 321px #fff, 543px 987px #fff,
+    912px 1543px #fff, 187px 876px #fff, 1345px 432px #fff, 678px 1654px #fff, 1902px 234px #fff,
+    456px 1789px #fff, 1234px 567px #fff, 789px 1345px #fff, 1678px 890px #fff, 321px 1876px #fff,
+    987px 654px #fff, 1543px 123px #fff, 876px 1890px #fff, 432px 765px #fff, 1654px 321px #fff,
+    234px 1432px #fff, 1789px 876px #fff, 567px 1543px #fff, 1345px 987px #fff, 890px 1654px #fff,
+    1876px 432px #fff, 654px 1234px #fff, 123px 1789px #fff, 1890px 567px #fff, 765px 1345px #fff,
+    321px 1678px #fff, 1432px 890px #fff, 876px 1876px #fff, 1543px 654px #fff, 987px 123px #fff,
+    1654px 1890px #fff, 432px 765px #fff, 1789px 321px #fff, 567px 1432px #fff, 1345px 876px #fff,
+    890px 1543px #fff, 1876px 987px #fff, 654px 1654px #fff, 123px 432px #fff, 1890px 1789px #fff,
+    /* Add ~1955 more coordinates for ~2000 stars */
+    765px 567px #fff, 1678px 1345px #fff, 321px 890px #fff, 1432px 1876px #fff, 876px 654px #fff;
+  animation: animStarSmall 15s linear infinite;
 }
 
-.header-container .stars::after {
-  content: "";
+.stars:after {
+  content: " ";
   position: absolute;
+  top: 2000px;
   width: 1px;
   height: 1px;
-  background: #d1d5db;
-  box-shadow:
-    8vw 12vh 2px #d1d5db,
-    16vw 18vh 1px #d1d5db,
-    24vw 25vh 2px #d1d5db,
-    33vw 15vh 1px #d1d5db,
-    41vw 28vh 2px #d1d5db,
-    49vw 35vh 1px #d1d5db,
-    57vw 22vh 2px #d1d5db,
-    65vw 42vh 1px #d1d5db,
-    73vw 28vh 2px #d1d5db,
-    81vw 48vh 1px #d1d5db,
-    89vw 32vh 2px #d1d5db,
-    97vw 45vh 1px #d1d5db,
-    3vw 68vh 2px #d1d5db,
-    11vw 75vh 1px #d1d5db,
-    19vw 82vh 2px #d1d5db,
-    27vw 88vh 1px #d1d5db,
-    35vw 72vh 2px #d1d5db;
+  background: transparent;
+  box-shadow: 
+    1423px 1876px #fff, 234px 543px #fff, 876px 1234px #fff, 1678px 321px #fff, 543px 987px #fff,
+    912px 1543px #fff, 187px 876px #fff, 1345px 432px #fff, 678px 1654px #fff, 1902px 234px #fff,
+    456px 1789px #fff, 1234px 567px #fff, 789px 1345px #fff, 1678px 890px #fff, 321px 1876px #fff,
+    987px 654px #fff, 1543px 123px #fff, 876px 1890px #fff, 432px 765px #fff, 1654px 321px #fff,
+    234px 1432px #fff, 1789px 876px #fff, 567px 1543px #fff, 1345px 987px #fff, 890px 1654px #fff,
+    1876px 432px #fff, 654px 1234px #fff, 123px 1789px #fff, 1890px 567px #fff, 765px 1345px #fff,
+    321px 1678px #fff, 1432px 890px #fff, 876px 1876px #fff, 1543px 654px #fff, 987px 123px #fff,
+    1654px 1890px #fff, 432px 765px #fff, 1789px 321px #fff, 567px 1432px #fff, 1345px 876px #fff,
+    890px 1543px #fff, 1876px 987px #fff, 654px 1654px #fff, 123px 432px #fff, 1890px 1789px #fff,
+    765px 567px #fff, 1678px 1345px #fff, 321px 890px #fff, 1432px 1876px #fff, 876px 654px #fff;
 }
 
-.header-container .shooting-star {
-  position: absolute;
-  width: 100px;
+.stars2 {
+  width: 2px;
   height: 2px;
-  background: linear-gradient(to right, #d1d5db, transparent);
-  left: -100px;
-  animation: shoot 3s infinite ease-in;
+  box-shadow: 
+    1678px 432px #fff, 234px 1543px #fff, 876px 789px #fff, 1234px 1876px #fff, 543px 321px #fff,
+    912px 1654px #fff, 187px 987px #fff, 1345px 654px #fff, 678px 1432px #fff, 1902px 876px #fff,
+    456px 1789px #fff, 1234px 234px #fff, 789px 1678px #fff, 1543px 543px #fff, 321px 1234px #fff,
+    987px 1890px #fff, 654px 765px #fff, 1432px 1678px #fff, 876px 432px #fff, 1654px 1543px #fff,
+    234px 789px #fff, 1789px 1234px #fff, 567px 1876px #fff, 1345px 321px #fff, 890px 1654px #fff,
+    1876px 987px #fff, 654px 1432px #fff, 123px 876px #fff, 1890px 1543px #fff, 765px 234px #fff,
+    1678px 1789px #fff, 321px 567px #fff, 1432px 1345px #fff, 876px 1890px #fff, 1543px 654px #fff,
+    987px 432px #fff, 1654px 1234px #fff, 432px 1876px #fff, 1789px 789px #fff, 567px 1678px #fff,
+    /* Add ~460 more coordinates for ~500 stars */
+    1345px 321px #fff, 890px 1543px #fff, 1876px 987px #fff, 654px 1432px #fff, 123px 876px #fff;
+  animation: animStarMedium 45s linear infinite;
 }
 
-@keyframes shoot {
-  0% {
-    transform: translateX(0) translateY(0) rotate(25deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(100vw) translateY(30px) rotate(25deg);
-    opacity: 0;
-  }
+.stars2:after {
+  content: " ";
+  position: absolute;
+  top: 2000px;
+  width: 2px;
+  height: 2px;
+  background: transparent;
+  box-shadow: 
+    1678px 432px #fff, 234px 1543px #fff, 876px 789px #fff, 1234px 1876px #fff, 543px 321px #fff,
+    912px 1654px #fff, 187px 987px #fff, 1345px 654px #fff, 678px 1432px #fff, 1902px 876px #fff,
+    456px 1789px #fff, 1234px 234px #fff, 789px 1678px #fff, 1543px 543px #fff, 321px 1234px #fff,
+    987px 1890px #fff, 654px 765px #fff, 1432px 1678px #fff, 876px 432px #fff, 1654px 1543px #fff,
+    234px 789px #fff, 1789px 1234px #fff, 567px 1876px #fff, 1345px 321px #fff, 890px 1654px #fff,
+    1876px 987px #fff, 654px 1432px #fff, 123px 876px #fff, 1890px 1543px #fff, 765px 234px #fff,
+    1678px 1789px #fff, 321px 567px #fff, 1432px 1345px #fff, 876px 1890px #fff, 1543px 654px #fff,
+    987px 432px #fff, 1654px 1234px #fff, 432px 1876px #fff, 1789px 789px #fff, 567px 1678px #fff,
+    1345px 321px #fff, 890px 1543px #fff, 1876px 987px #fff, 654px 1432px #fff, 123px 876px #fff;
 }
 
-.header-container .shooting-star.top-\[10\%\] {
-  top: 10%;
-  animation-delay: 0s;
+.stars3 {
+  width: 3px;
+  height: 3px;
+  box-shadow: 
+    1543px 876px #fff, 321px 1654px #fff, 987px 432px #fff, 1678px 1234px #fff, 543px 1876px #fff,
+    912px 654px #fff, 187px 1432px #fff, 1345px 789px #fff, 678px 1789px #fff, 1902px 234px #fff,
+    456px 1543px #fff, 1234px 567px #fff, 789px 1678px #fff, 1654px 321px #fff, 234px 1345px #fff,
+    876px 1890px #fff, 432px 987px #fff, 1432px 654px #fff, 1789px 1234px #fff, 567px 1876px #fff,
+    1345px 432px #fff, 890px 1654px #fff, 1876px 789px #fff, 654px 1543px #fff, 123px 876px #fff,
+    1890px 321px #fff, 765px 1678px #fff, 1678px 234px #fff, 321px 1432px #fff, 876px 1789px #fff,
+    1543px 567px #fff, 987px 1345px #fff, 1654px 1890px #fff, 432px 654px #fff, 1789px 1234px #fff,
+    /* Add ~215 more coordinates for ~250 stars */
+    567px 987px #fff, 1345px 432px #fff, 890px 1654px #fff, 1876px 789px #fff, 654px 1543px #fff;
+  animation: animStarLarge 75s linear infinite;
 }
 
-.header-container .shooting-star.top-\[30\%\] {
-  top: 30%;
-  animation-delay: 1s;
+.stars3:after {
+  content: " ";
+  position: absolute;
+  top: 2000px;
+  width: 3px;
+  height: 3px;
+  background: transparent;
+  box-shadow: 
+    1543px 876px #fff, 321px 1654px #fff, 987px 432px #fff, 1678px 1234px #fff, 543px 1876px #fff,
+    912px 654px #fff, 187px 1432px #fff, 1345px 789px #fff, 678px 1789px #fff, 1902px 234px #fff,
+    456px 1543px #fff, 1234px 567px #fff, 789px 1678px #fff, 1654px 321px #fff, 234px 1345px #fff,
+    876px 1890px #fff, 432px 987px #fff, 1432px 654px #fff, 1789px 1234px #fff, 567px 1876px #fff,
+    1345px 432px #fff, 890px 1654px #fff, 1876px 789px #fff, 654px 1543px #fff, 123px 876px #fff,
+    1890px 321px #fff, 765px 1678px #fff, 1678px 234px #fff, 321px 1432px #fff, 876px 1789px #fff,
+    1543px 567px #fff, 987px 1345px #fff, 1654px 1890px #fff, 432px 654px #fff, 1789px 1234px #fff,
+    567px 987px #fff, 1345px 432px #fff, 890px 1654px #fff, 1876px 789px #fff, 654px 1543px #fff;
 }
 
-.header-container .shooting-star.top-\[50\%\] {
-  top: 50%;
-  animation-delay: 2s;
+@keyframes animStarSmall {
+  from { transform: translateY(0px); }
+  to { transform: translateY(-2000px); }
 }
 
-.glow-effect {
-  box-shadow: 0 0 10px 2px rgba(209, 213, 219, 0.5);
+@keyframes animStarMedium {
+  from { transform: translateY(0px); }
+  to { transform: translateY(-2000px); }
 }
 
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+@keyframes animStarLarge {
+  from { transform: translateY(0px); }
+  to { transform: translateY(-2000px); }
 }
 
+/* Existing animations */
 @keyframes fadeIn {
   0% { opacity: 0; transform: translateY(20px); }
   100% { opacity: 1; transform: translateY(0); }
-}
-
-.animate-gradientShift {
-  animation: gradientShift 15s ease infinite;
 }
 
 .animate-fadeIn {

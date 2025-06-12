@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './AuthContext';
-import ErrorBoundary from './ErrorBoundary'; // Import the ErrorBoundary
+import ErrorBoundary from './ErrorBoundary';
 import HeaderFunctionality from './components/Header/HeaderFunctionality';
 import MainSectionFunctionality from './components/MainSection/MainSectionFunctionality';
 import ButtonGroup from './components/ButtonGroup';
@@ -31,69 +31,78 @@ const AppContent = () => {
   const showHeader = location.pathname !== '/login';
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-[#ff6f61] to-white bg-fixed">
-      {showHeader && <HeaderFunctionality />}
-      <Routes>
-        <Route path="/login" element={<LoginFunctionality />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute path="/">
-              <MainSectionFunctionality />
-              <ButtonGroup />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/task-manager"
-          element={
-            <ProtectedRoute path="/task-manager">
-              <div className="p-4 text-center text-gray-800">Task Manager Page</div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/testcase-generator"
-          element={
-            <ProtectedRoute path="/testcase-generator">
-              <div className="p-4 text-center text-gray-800">Testcase Generator Page</div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/test-report-generator"
-          element={
-            <ProtectedRoute path="/test-report-generator">
-              <div className="p-4 text-center text-gray-800">Test Report Generator Page</div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/status-mail-formatter"
-          element={
-            <ProtectedRoute path="/status-mail-formatter">
-              <StatusMailFormatterFunctionality />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/user-manager"
-          element={
-            <ProtectedRoute path="/user-manager">
-              <UserManagerFunctionality />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute path="/settings">
-              <SettingsCardFunctionality />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/login" />} />
-      </Routes>
+    <div className="relative flex flex-col min-h-screen">
+      {/* Parallax Star Background */}
+      <div className="header-container">
+        <div className="stars"></div>
+        <div className="stars2"></div>
+        <div className="stars3"></div>
+      </div>
+      {/* Main Content */}
+      <div className="relative z-10 flex flex-col min-h-screen bg-transparent">
+        {showHeader && <HeaderFunctionality />}
+        <Routes>
+          <Route path="/login" element={<LoginFunctionality />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute path="/">
+                <MainSectionFunctionality />
+                <ButtonGroup />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/task-manager"
+            element={
+              <ProtectedRoute path="/task-manager">
+                <div className="p-4 text-center text-gray-200">Task Manager Page</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/testcase-generator"
+            element={
+              <ProtectedRoute path="/testcase-generator">
+                <div className="p-4 text-center text-gray-200">Testcase Generator Page</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/test-report-generator"
+            element={
+              <ProtectedRoute path="/test-report-generator">
+                <div className="p-4 text-center text-gray-200">Test Report Generator Page</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/status-mail-formatter"
+            element={
+              <ProtectedRoute path="/status-mail-formatter">
+                <StatusMailFormatterFunctionality />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/user-manager"
+            element={
+              <ProtectedRoute path="/user-manager">
+                <UserManagerFunctionality />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute path="/settings">
+                <SettingsCardFunctionality />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/login" />} />
+        </Routes>
+      </div>
     </div>
   );
 };
