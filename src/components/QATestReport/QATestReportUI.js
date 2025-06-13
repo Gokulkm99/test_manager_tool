@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { AuthContext } from '../../AuthContext';
+import QATestReportSettings from './QATestReportSettings';
 
 const QATestReportUI = ({
   hasAccess,
@@ -56,11 +58,54 @@ const QATestReportUI = ({
   testResultTypes,
   testResultStatuses,
   testResultPriorities,
+  projects,
+  refreshSettingsData,
 }) => {
   const [editingTestCase, setEditingTestCase] = useState(null);
   const [newTestCase, setNewTestCase] = useState('');
   const [newTestResult, setNewTestResult] = useState({ ticketId: '', type: '', status: '', priority: '' });
   const [newIssue, setNewIssue] = useState({ ticket: '', description: '' });
+  const [toast, setToast] = useState(null);
+  const { user } = useContext(AuthContext);
+  const [showSettings, setShowSettings] = useState(false);
+  const [localSettings, setLocalSettings] = useState({
+    projects: projects || [],
+    browsers: browserOptions || [],
+    environments: environmentOptions || [],
+    testTypes: testTypeOptions || [],
+  });
+
+  // Sync localSettings with props
+  useEffect(() => {
+    setLocalSettings({
+      projects: projects || [],
+      browsers: browserOptions || [],
+      environments: environmentOptions || [],
+      testTypes: testTypeOptions || [],
+    });
+  }, [projects, browserOptions, environmentOptions, testTypeOptions]);
+
+  const showToast = (type, message) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // Set default summary when projectName changes
+  useEffect(() => {
+    if (!summary && projectName) {
+      setSummary(
+        `The QA team tested ${projectName} to ensure its functionality, reliability, and performance. This report summarizes the test results and any issues encountered during testing.`
+      );
+    }
+  }, [projectName, summary, setSummary]);
+
+  const handleSettingsClose = (updatedSettings) => {
+    if (updatedSettings) {
+      setLocalSettings(updatedSettings);
+      refreshSettingsData(updatedSettings);
+    }
+    setShowSettings(false);
+  };
 
   if (!hasAccess('/test-report-generator')) {
     return <div className="p-4 text-gray-300 text-center">You do not have access to this page.</div>;
@@ -68,7 +113,7 @@ const QATestReportUI = ({
 
   const handleEditTestCaseSubmit = () => {
     if (!newTestCase.trim()) {
-      alert('Test case description is required.');
+      showToast('danger', 'Test case description is required.');
       return;
     }
     handleEditTestCase(editingTestCase.id, newTestCase);
@@ -79,7 +124,43 @@ const QATestReportUI = ({
   const renderTextWithLinks = (text) => {
     if (!text) return text;
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return text.replace(urlRegex, (url) => `<a href="${url}" target="_blank" class="text-blue-400">${url}</a>`);
+    return text.replace(urlRegex, (url) => `<a href="${url}" target="_blank" className="text-blue-400">${url}</a>`);
+  };
+
+  const validateFields = () => {
+    if (!projectName) {
+      showToast('danger', 'Project Name is required.');
+      return false;
+    }
+    if (!tester) {
+      showToast('danger', 'Tester is required.');
+      return false;
+    }
+    if (!environment) {
+      showToast('danger', 'Environment is required.');
+      return false;
+    }
+    if (!startDate) {
+      showToast('danger', 'Start Date is required.');
+      return false;
+    }
+    if (!endDate) {
+      showToast('danger', 'End Date is required.');
+      return false;
+    }
+    if (!testType) {
+      showToast('danger', 'Test Type is required.');
+      return false;
+    }
+    if (!browser) {
+      showToast('danger', 'Browser is required.');
+      return false;
+    }
+    if (!status) {
+      showToast('danger', 'Status is required.');
+      return false;
+    }
+    return true;
   };
 
   return (
@@ -92,7 +173,75 @@ const QATestReportUI = ({
 
       <div className="relative z-10 flex-1 p-4 mx-auto w-full max-w-6xl">
         <div className="bg-gray-800 bg-opacity-90 rounded-lg p-6 animate-fadeIn max-h-[calc(100vh-2rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-900">
-          <h2 className="text-2xl font-bold text-gray-100 text-center mb-6">QA Test Report</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-100 text-center">QA Test Report</h2>
+            {user?.role === 'Admin' && (
+              <button
+                onClick={() => setShowSettings(true)}
+                className="text-gray-300 hover:text-gray-100"
+                title="Settings"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37zM15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {toast && (
+            <div
+              id={`toast-${toast.type}`}
+              className="flex items-center w-full max-w-xs p-4 mb-4 text-gray-500 bg-white rounded-lg shadow dark:text-gray-400 dark:bg-gray-800 fixed top-4 right-4 z-50"
+              role="alert"
+            >
+              <div
+                className={`inline-flex items-center justify-center flex-shrink-0 w-8 h-8 text-${
+                  toast.type === 'success' ? 'green' : toast.type === 'danger' ? 'red' : 'orange'
+                }-500 bg-${toast.type === 'success' ? 'green' : toast.type === 'danger' ? 'red' : 'orange'}-100 rounded-lg dark:bg-${
+                  toast.type === 'success' ? 'green' : toast.type === 'danger' ? 'red' : 'orange'
+                }-800 dark:text-${toast.type === 'success' ? 'green' : toast.type === 'danger' ? 'red' : 'orange'}-200`}
+              >
+                <svg className="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                  {toast.type === 'success' && (
+                    <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z" />
+                  )}
+                  {toast.type === 'danger' && (
+                    <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 11.793a1 1 0 1 1-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 0 1-1.414-1.414L8.586 10 6.293 7.707a1 1 0 0 1 1.414-1.414L10 8.586l2.293-2.293a1 1 0 0 1 1.414 1.414L11.414 10l2.293 2.293Z" />
+                  )}
+                  {toast.type === 'warning' && (
+                    <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM10 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-4a1 1 0 0 1-2 0V6a1 1 0 0 1 2 0v5Z" />
+                  )}
+                </svg>
+                <span className="sr-only">{toast.type === 'success' ? 'Check' : toast.type === 'danger' ? 'Error' : 'Warning'} icon</span>
+              </div>
+              <div className="ml-3 text-sm font-normal">{toast.message}</div>
+              <button
+                type="button"
+                className="ml-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex items-center justify-center h-8 w-8 dark:text-gray-500 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-700"
+                onClick={() => setToast(null)}
+              >
+                <span className="sr-only">Close</span>
+                <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                  <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                </svg>
+              </button>
+            </div>
+          )}
+
+          {showSettings && user?.role === 'Admin' && (
+            <QATestReportSettings
+              projects={localSettings.projects}
+              browserOptions={localSettings.browsers}
+              environmentOptions={localSettings.environments}
+              testTypeOptions={localSettings.testTypes}
+              onClose={handleSettingsClose}
+            />
+          )}
 
           {/* Project Details */}
           <div className="mb-6">
@@ -102,13 +251,20 @@ const QATestReportUI = ({
                 <label className="block text-sm font-medium text-gray-300 mb-1">
                   Project Name <span className="text-red-400">*</span>
                 </label>
-                <input
-                  type="text"
+                <select
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
                   className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200 focus:ring-1 focus:ring-blue-500 text-sm"
-                  placeholder="Enter project name"
-                />
+                >
+                  <option value="" className="bg-gray-700 text-gray-200">
+                    Select Project
+                  </option>
+                  {(localSettings.projects || []).map((proj) => (
+                    <option key={proj} value={proj} className="bg-gray-700 text-gray-200">
+                      {proj}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Version</label>
@@ -127,9 +283,9 @@ const QATestReportUI = ({
                 <input
                   type="text"
                   value={tester}
-                  onChange={(e) => setTester(e.target.value)}
-                  className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200 focus:ring-1 focus:ring-blue-500 text-sm"
-                  placeholder="Enter tester name"
+                  readOnly
+                  className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200 text-sm opacity-50 cursor-not-allowed"
+                  placeholder="Tester name"
                 />
               </div>
               <div>
@@ -141,9 +297,13 @@ const QATestReportUI = ({
                   onChange={(e) => setEnvironment(e.target.value)}
                   className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200 focus:ring-1 focus:ring-blue-500 text-sm"
                 >
-                  <option value="" className="bg-gray-700 text-gray-200">Select Environment</option>
-                  {environmentOptions.map((env) => (
-                    <option key={env} value={env} className="bg-gray-700 text-gray-200">{env}</option>
+                  <option value="" className="bg-gray-700 text-gray-200">
+                    Select Environment
+                  </option>
+                  {(localSettings.environments || []).map((env) => (
+                    <option key={env} value={env} className="bg-gray-700 text-gray-200">
+                      {env}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -180,9 +340,13 @@ const QATestReportUI = ({
                   onChange={(e) => setTestType(e.target.value)}
                   className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200 focus:ring-1 focus:ring-blue-500 text-sm"
                 >
-                  <option value="" className="bg-gray-700 text-gray-200">Select Test Type</option>
-                  {testTypeOptions.map((type) => (
-                    <option key={type} value={type} className="bg-gray-700 text-gray-200">{type}</option>
+                  <option value="" className="bg-gray-700 text-gray-200">
+                    Select Test Type
+                  </option>
+                  {(localSettings.testTypes || []).map((type) => (
+                    <option key={type} value={type} className="bg-gray-700 text-gray-200">
+                      {type}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -205,9 +369,13 @@ const QATestReportUI = ({
                   onChange={(e) => setBrowser(e.target.value)}
                   className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200 focus:ring-1 focus:ring-blue-500 text-sm"
                 >
-                  <option value="" className="bg-gray-700 text-gray-200">Select Browser</option>
-                  {browserOptions.map((br) => (
-                    <option key={br} value={br} className="bg-gray-700 text-gray-200">{br}</option>
+                  <option value="" className="bg-gray-700 text-gray-200">
+                    Select Browser
+                  </option>
+                  {(localSettings.browsers || []).map((br) => (
+                    <option key={br} value={br} className="bg-gray-700 text-gray-200">
+                      {br}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -217,10 +385,8 @@ const QATestReportUI = ({
                 </label>
                 <div className="flex flex-wrap gap-3">
                   {[
-                    { value: 'Completed', color: 'text-green-400' },
-                    { value: 'In Progress', color: 'text-orange-400' },
-                    { value: 'To Be Done', color: 'text-blue-400' },
-                    { value: 'Blocked', color: 'text-red-400' },
+                    { value: 'Pass', color: 'text-green-400' },
+                    { value: 'Fail', color: 'text-red-400' },
                   ].map((stat) => (
                     <label key={stat.value} className="flex items-center gap-1 cursor-pointer">
                       <input
@@ -265,7 +431,7 @@ const QATestReportUI = ({
               <button
                 onClick={() => {
                   if (!newTestCase.trim()) {
-                    alert('Test case description is required.');
+                    showToast('danger', 'Test case description is required.');
                     return;
                   }
                   editingTestCase ? handleEditTestCaseSubmit() : handleAddTestCase(newTestCase);
@@ -328,7 +494,12 @@ const QATestReportUI = ({
                                       title="Edit"
                                     >
                                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth="2"
+                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                        />
                                       </svg>
                                     </button>
                                     <button
@@ -337,7 +508,12 @@ const QATestReportUI = ({
                                       title="Copy"
                                     >
                                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-2M8 5V3a2 2 0 012-2h4a2 2 0 012 2v2M8 5h8" />
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth="2"
+                                          d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-2M8 5V3a2 2 0 012-2h4a2 2 0 012 2v2M8 5h8"
+                                        />
                                       </svg>
                                     </button>
                                     <button
@@ -370,7 +546,7 @@ const QATestReportUI = ({
             <button
               onClick={() => {
                 if (!newTestResult.ticketId.trim()) {
-                  alert('Ticket ID is required.');
+                  showToast('danger', 'Ticket ID is required.');
                   return;
                 }
                 handleAddTestResult({
@@ -435,7 +611,9 @@ const QATestReportUI = ({
                           className="w-full p-1 border border-gray-600 rounded-md bg-gray-700 text-gray-200 text-sm"
                         >
                           {testResultTypes.map((type) => (
-                            <option key={type} value={type} className="bg-gray-700 text-gray-200">{type}</option>
+                            <option key={type} value={type} className="bg-gray-700 text-gray-200">
+                              {type}
+                            </option>
                           ))}
                         </select>
                       </td>
@@ -450,7 +628,9 @@ const QATestReportUI = ({
                           className="w-full p-1 border border-gray-600 rounded-md bg-gray-700 text-gray-200 text-sm"
                         >
                           {testResultStatuses.map((status) => (
-                            <option key={status} value={status} className="bg-gray-700 text-gray-200">{status}</option>
+                            <option key={status} value={status} className="bg-gray-700 text-gray-200">
+                              {status}
+                            </option>
                           ))}
                         </select>
                       </td>
@@ -465,7 +645,9 @@ const QATestReportUI = ({
                           className="w-full p-1 border border-gray-600 rounded-md bg-gray-700 text-gray-200 text-sm"
                         >
                           {testResultPriorities.map((priority) => (
-                            <option key={priority} value={priority} className="bg-gray-700 text-gray-200">{priority}</option>
+                            <option key={priority} value={priority} className="bg-gray-700 text-gray-200">
+                              {priority}
+                            </option>
                           ))}
                         </select>
                       </td>
@@ -508,7 +690,7 @@ const QATestReportUI = ({
               <button
                 onClick={() => {
                   if (!newIssue.ticket.trim() || !newIssue.description.trim()) {
-                    alert('Ticket ID and description are required.');
+                    showToast('danger', 'Ticket ID and description are required.');
                     return;
                   }
                   handleAddIssue(newIssue);
@@ -591,16 +773,19 @@ const QATestReportUI = ({
             />
             <p className="text-sm text-gray-300 mt-2">
               The Testing has been completed and it is{' '}
-              <span className={status === 'Completed' ? 'font-bold text-green-400' : 'font-bold text-red-400'}>
-                {status === 'Completed' ? 'Passed' : 'Failed'}
-              </span>.
+              <span className={status === 'Pass' ? 'font-bold text-green-400' : 'font-bold text-red-400'}>{status}</span>.
             </p>
           </div>
 
           {/* Download and Upload Buttons */}
           <div className="flex gap-2">
             <button
-              onClick={handleDownloadPDF}
+              onClick={() => {
+                if (validateFields()) {
+                  handleDownloadPDF();
+                  showToast('success', 'PDF downloaded successfully.');
+                }
+              }}
               className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 text-sm font-medium"
             >
               Download PDF
@@ -610,7 +795,10 @@ const QATestReportUI = ({
               <input
                 type="file"
                 accept="application/pdf"
-                onChange={handleUploadPDF}
+                onChange={(e) => {
+                  handleUploadPDF(e);
+                  showToast('success', 'PDF uploaded successfully.');
+                }}
                 className="hidden"
               />
             </label>

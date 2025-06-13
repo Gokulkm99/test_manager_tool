@@ -414,6 +414,129 @@ app.delete('/api/task-types/:task_type', async (req, res) => {
   }
 });
 
+// Get all browsers (for QA Test Report)
+app.get('/api/browsers', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT browser_name FROM browsers');
+    res.json(result.rows.map(row => row.browser_name));
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add a browser (for admin)
+app.post('/api/browsers', async (req, res) => {
+  const { browser_name } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO browsers (browser_name) VALUES ($1) RETURNING *',
+      [browser_name]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete a browser (for admin)
+app.delete('/api/browsers/:browser_name', async (req, res) => {
+  const { browser_name } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM browsers WHERE browser_name = $1 RETURNING *', [browser_name]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Browser not found' });
+    }
+    res.json({ message: 'Browser deleted' });
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get all environments (for QA Test Report)
+app.get('/api/environments', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT environment_name FROM environments');
+    res.json(result.rows.map(row => row.environment_name));
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add an environment (for admin)
+app.post('/api/environments', async (req, res) => {
+  const { environment_name } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO environments (environment_name) VALUES ($1) RETURNING *',
+      [environment_name]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete an environment (for admin)
+app.delete('/api/environments/:environment_name', async (req, res) => {
+  const { environment_name } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM environments WHERE environment_name = $1 RETURNING *', [environment_name]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Environment not found' });
+    }
+    res.json({ message: 'Environment deleted' });
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get all test types (for QA Test Report)
+app.get('/api/test-types', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT test_type_name FROM test_types');
+    res.json(result.rows.map(row => row.test_type_name));
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add a test type (for admin)
+app.post('/api/test-types', async (req, res) => {
+  const { test_type_name } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO test_types (test_type_name) VALUES ($1) RETURNING *',
+      [test_type_name]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete a test type (for admin)
+app.delete('/api/test-types/:test_type_name', async (req, res) => {
+  const { test_type_name } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM test_types WHERE test_type_name = $1 RETURNING *', [test_type_name]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Test type not found' });
+    }
+    res.json({ message: 'Test type deleted' });
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Handle 404 for unknown routes
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
