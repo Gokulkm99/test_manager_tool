@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable'; // Import jspdf-autotable
+import 'jspdf-autotable'; // Standard side-effect import
 import * as pdfjsLib from 'pdfjs-dist';
 import { v4 as uuidv4 } from 'uuid';
 
