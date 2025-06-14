@@ -194,15 +194,15 @@ const QATestReportUI = ({
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-gray-900">
+    <div className="relative min-h-screen w-full">
       <div className="header-container">
         <div className="stars"></div>
         <div className="stars2"></div>
         <div className="stars3"></div>
       </div>
 
-      <div className="relative z-10 flex-1 p-4 mx-auto w-full max-w-6xl">
-        <div className="bg-gray-800 bg-opacity-90 rounded-lg p-6 animate-fadeIn max-h-[calc(100vh-2rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-900">
+      <div className="relative z-10 flex-1 p-4 mx-auto w-full">
+        <div className="bg-gray-800 bg-opacity-90 rounded-lg p-4 animate-fadeIn max-h-[calc(100vh-2rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-900">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-100 text-center">QA Test Report</h2>
             {user?.role === 'Admin' && (
