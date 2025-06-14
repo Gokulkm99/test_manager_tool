@@ -3,8 +3,8 @@ import QATestReportUI from './QATestReportUI';
 import useQATestReportFunctionality from './QATestReportFunctionality';
 
 const QATestReport = ({ hasAccess }) => {
-  const props = useQATestReportFunctionality();
-  return <QATestReportUI {...props} hasAccess={hasAccess} />;
+  const functionality = useQATestReportFunctionality();
+  return <QATestReportUI hasAccess={hasAccess} {...functionality} />;
 };
 
 export default QATestReport;

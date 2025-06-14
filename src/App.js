@@ -74,7 +74,7 @@ const AppContent = () => {
             path="/test-report-generator"
             element={
               <ProtectedRoute path="/test-report-generator">
-                <QATestReport hasAccess={(path) => hasAccess(path)} />
+                <QATestReport hasAccess={hasAccess} />
               </ProtectedRoute>
             }
           />
