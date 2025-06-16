@@ -4,7 +4,7 @@ import { AuthContext } from '../../AuthContext';
 import HeaderUI from './HeaderUI';
 
 const HeaderFunctionality = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout, hasAccess } = useContext(AuthContext); // Add hasAccess
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -236,6 +236,7 @@ const HeaderFunctionality = () => {
       handlePrevMonth={handlePrevMonth}
       handleNextMonth={handleNextMonth}
       handleYearChange={handleYearChange}
+      hasAccess={hasAccess} // Pass hasAccess to HeaderUI
     />
   );
 };

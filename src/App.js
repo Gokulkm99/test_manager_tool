@@ -5,7 +5,7 @@ import ErrorBoundary from './ErrorBoundary';
 import HeaderFunctionality from './components/Header/HeaderFunctionality';
 import MainSectionFunctionality from './components/MainSection/MainSectionFunctionality';
 import ButtonGroup from './components/ButtonGroup';
-import UserManagerFunctionality from './components/UserManager/UserManagerFunctionality';
+import UserManager from './components/UserManager/UserManager'; // Updated import
 import StatusMailFormatterFunctionality from './components/StatusMailFormatter/StatusMailFormatterFunctionality';
 import QATestReport from './components/QATestReport/QATestReport';
 import LoginFunctionality from './components/Login/LoginFunctionality';
@@ -90,7 +90,7 @@ const AppContent = () => {
             path="/user-manager"
             element={
               <ProtectedRoute path="/user-manager">
-                <UserManagerFunctionality />
+                <UserManager />
               </ProtectedRoute>
             }
           />

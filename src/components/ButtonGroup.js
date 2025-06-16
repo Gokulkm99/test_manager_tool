@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
+import { AuthContext } from '../AuthContext'; // Fix import path
 
 const ButtonGroup = () => {
+  const { hasAccess } = useContext(AuthContext);
+
   return (
     <div className="flex justify-center gap-4 p-4">
       <Link to="/task-manager">
@@ -24,11 +27,13 @@ const ButtonGroup = () => {
           Status Mail Formatter
         </button>
       </Link>
-      <Link to="/user-manager">
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200">
-          User Manager
-        </button>
-      </Link>
+      {hasAccess('/user-manager') && (
+        <Link to="/user-manager">
+          <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200">
+            User Manager
+          </button>
+        </Link>
+      )}
     </div>
   );
 };
