@@ -21,6 +21,7 @@ const HeaderUI = ({
   handleTestReport,
   handleHome,
   handleSettings,
+  handleDashboard, // Add handleDashboard
   handleLogoClick,
   handlePrevMonth,
   handleNextMonth,
@@ -172,6 +173,16 @@ const HeaderUI = ({
               </button>
             )}
 
+            {hasAccess('/dashboard') && (
+              <button
+                onClick={handleDashboard}
+                className="relative px-2 py-1 bg-gray-800 text-gray-200 text-xs font-medium rounded-md hover:bg-gray-700 transition-colors"
+              >
+                DASHBOARD
+                <span className="absolute inset-0 -z-10 opacity-0 hover:opacity-100 transition-opacity duration-300 glow-effect"></span>
+              </button>
+            )}
+
             <button
               onClick={handleTestReport}
               className="relative px-2 py-1 bg-gray-800 text-gray-200 text-xs font-medium rounded-md hover:bg-gray-700 transition-colors"
@@ -204,7 +215,7 @@ const HeaderUI = ({
               </button>
               {isProfileOpen && (
                 <motion.div
-                  className="absolute top-full right-0 mt-1 w-40 bg-gray-800 text-gray-200 rounded-md shadow-lg p-2 z-[100]" // Increase z-index
+                  className="absolute top-full right-0 mt-1 w-40 bg-gray-800 text-gray-200 rounded-md shadow-lg p-2 z-[100]"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2 }}
@@ -230,7 +241,7 @@ const HeaderUI = ({
               </span>
               {isTimeZoneOpen && (
                 <motion.div
-                  className="absolute top-full right-0 mt-1 w-64 bg-gray-800 text-gray-200 rounded-md shadow-lg p-2 z-[100]" // Increase z-index for consistency
+                  className="absolute top-full right-0 mt-1 w-64 bg-gray-800 text-gray-200 rounded-md shadow-lg p-2 z-[100]"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2 }}
@@ -255,7 +266,7 @@ const HeaderUI = ({
 
         {toastMessage && (
           <motion.div
-            className="fixed bottom-4 right-4 bg-red-600 text-white px-2 py-1 rounded-md shadow-lg max-w-xs z-[110]" // Increase z-index to stay above dropdowns
+            className="fixed bottom-4 right-4 bg-red-600 text-white px-2 py-1 rounded-md shadow-lg max-w-xs z-[110]"
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3 }}

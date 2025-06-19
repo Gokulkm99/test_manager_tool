@@ -5,11 +5,12 @@ import ErrorBoundary from './ErrorBoundary';
 import HeaderFunctionality from './components/Header/HeaderFunctionality';
 import MainSectionFunctionality from './components/MainSection/MainSectionFunctionality';
 import ButtonGroup from './components/ButtonGroup';
-import UserManager from './components/UserManager/UserManager'; // Updated import
+import UserManager from './components/UserManager/UserManager';
 import StatusMailFormatterFunctionality from './components/StatusMailFormatter/StatusMailFormatterFunctionality';
 import QATestReport from './components/QATestReport/QATestReport';
 import LoginFunctionality from './components/Login/LoginFunctionality';
 import SettingsCardFunctionality from './components/SettingsCard/SettingsCardFunctionality';
+import Dashboard from './components/Dashboard/Dashboard'; // Add Dashboard import
 
 // ProtectedRoute component to handle access control
 const ProtectedRoute = ({ children, path }) => {
@@ -99,6 +100,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute path="/settings">
                 <SettingsCardFunctionality />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute path="/dashboard">
+                <Dashboard />
               </ProtectedRoute>
             }
           />

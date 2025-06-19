@@ -77,6 +77,101 @@ app.get('/api/user/:id', async (req, res) => {
   }
 });
 
+// Save or update user settings
+app.post('/api/user-settings', async (req, res) => {
+  const { user_id, greeting, name, mobile, email, designation, to_emails, cc_emails, redmine_api_key } = req.body;
+  try {
+    const result = await pool.query(
+      `INSERT INTO user_settings (user_id, greeting, name, mobile, email, designation, to_emails, cc_emails, redmine_api_key)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (user_id)
+       DO UPDATE SET greeting = $2, name = $3, mobile = $4, email = $5, designation = $6, to_emails = $7, cc_emails = $8, redmine_api_key = $9
+       RETURNING *`,
+      [user_id, greeting, name, mobile, email, designation, to_emails, cc_emails, redmine_api_key]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Proxy endpoint for Redmine API
+app.get('/api/redmine/issues', async (req, res) => {
+  const apiKey = req.headers['x-redmine-api-key'];
+  if (!apiKey) {
+    console.error('No Redmine API key provided in request headers');
+    return res.status(400).json({ error: 'Redmine API key is required' });
+  }
+
+  try {
+    console.log(`Sending request to Redmine with API key: ${apiKey.slice(0, 8)}...`);
+    const response = await fetch(
+      'http://agilescrummodel.com:3000/issues.json?assigned_to_id=me&set_filter=1&sort=priority%3Adesc%2Cupdated_on%3Adesc',
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Redmine-API-Key': apiKey,
+        },
+      }
+    );
+
+    const contentType = response.headers.get('Content-Type');
+    console.log(`Redmine response status: ${response.status}, Content-Type: ${contentType}`);
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error(`Redmine error response: ${text.slice(0, 200)}...`);
+      let errorMessage = `Redmine API error: ${response.status} ${response.statusText}`;
+      if (response.status === 401) {
+        errorMessage = 'Invalid Redmine API key. Please verify your API key in settings.';
+      } else if (response.status === 500) {
+        errorMessage = 'Redmine server error. Please contact the server administrator.';
+      }
+      return res.status(response.status).json({
+        error: errorMessage,
+        details: text.slice(0, 200),
+      });
+    }
+
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error(`Invalid Redmine response format: ${text.slice(0, 200)}...`);
+      return res.status(502).json({
+        error: 'Invalid response format from Redmine: Expected JSON',
+        details: text.slice(0, 200),
+      });
+    }
+
+    const data = await response.json();
+    console.log(`Redmine response received: ${data.issues ? data.issues.length : 0} issues`);
+    res.json(data);
+  } catch (err) {
+    console.error('Redmine proxy error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch data from Redmine', details: err.message });
+  }
+});
+
+// Get user settings
+app.get('/api/user-settings/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'SELECT greeting, name, mobile, email, designation, to_emails, cc_emails, redmine_api_key FROM user_settings WHERE user_id = $1',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Settings not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Update user details
 app.put('/api/user/:id', async (req, res) => {
   const { id } = req.params;

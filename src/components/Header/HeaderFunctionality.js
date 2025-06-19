@@ -4,7 +4,7 @@ import { AuthContext } from '../../AuthContext';
 import HeaderUI from './HeaderUI';
 
 const HeaderFunctionality = () => {
-  const { user, logout, hasAccess } = useContext(AuthContext); // Add hasAccess
+  const { user, logout, hasAccess } = useContext(AuthContext);
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -169,6 +169,12 @@ const HeaderFunctionality = () => {
     navigate('/settings');
   };
 
+  const handleDashboard = () => {
+    console.log('Dashboard clicked');
+    clearAchieveTimeout();
+    navigate('/dashboard');
+  };
+
   const handleLogoClick = () => {
     console.log('Logo clicked');
     clearAchieveTimeout();
@@ -232,11 +238,12 @@ const HeaderFunctionality = () => {
       handleTestReport={handleTestReport}
       handleHome={handleHome}
       handleSettings={handleSettings}
+      handleDashboard={handleDashboard} // Add handleDashboard
       handleLogoClick={handleLogoClick}
       handlePrevMonth={handlePrevMonth}
       handleNextMonth={handleNextMonth}
       handleYearChange={handleYearChange}
-      hasAccess={hasAccess} // Pass hasAccess to HeaderUI
+      hasAccess={hasAccess}
     />
   );
 };
